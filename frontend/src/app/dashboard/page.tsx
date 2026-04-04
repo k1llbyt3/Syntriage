@@ -179,28 +179,28 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto relative z-30">
         
         {/* Top Header */}
-        <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-8">
+        <header className="flex flex-col md:flex-row items-center md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-8 text-center md:text-left">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8"
+            className="flex flex-col md:flex-row items-center md:items-center gap-4 md:gap-8"
           >
-            <Link href="/" className="group flex items-center gap-6 text-primary-teal-light hover:text-white transition-all shrink-0">
-              <NextImage src="/logo.png" alt="Logo" width={80} height={80} className="object-contain" />
-              <span className="text-3xl font-black italic tracking-[0.2em] text-white">SYNTRIAGE</span>
+            <Link href="/" className="group flex items-center gap-4 md:gap-6 text-primary-teal-light hover:text-white transition-all shrink-0">
+              <NextImage src="/logo.png" alt="Logo" width={60} height={60} className="object-contain md:w-[80px] md:h-[80px]" />
+              <span className="text-2xl md:text-3xl font-black italic tracking-[0.2em] text-white">SYNTRIAGE</span>
             </Link>
             
             <div className="hidden md:block w-px h-8 bg-white/10" />
             
             <div>
-              <h1 className="text-4xl font-black italic tracking-tight text-white mb-1 uppercase">Physician Hub</h1>
-              <p className="text-[10px] uppercase font-black tracking-[0.4em] text-primary-teal-light">Syntriage Clinical Registry</p>
+              <h1 className="text-3xl md:text-4xl font-black italic tracking-tight text-white mb-1 uppercase">Clinical Hub</h1>
+              <p className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.3em] md:tracking-[0.4em] text-primary-teal-light">Syntriage Clinical Registry</p>
             </div>
           </motion.div>
           
-          <div className="flex flex-wrap gap-4">
-            <StatCard icon={<Users />} label="Active Patients" value={patients.length} color="teal" />
-            <StatCard icon={<Calendar />} label="Debated Cases" value={debatedCases.length} color="coral" />
+          <div className="flex flex-row md:flex-wrap gap-3 md:gap-4 w-full md:w-auto justify-center">
+            <StatCard icon={<Users className="w-4 h-4 md:w-6 md:h-6" />} label="Active" value={patients.length} color="teal" />
+            <StatCard icon={<Calendar className="w-4 h-4 md:w-6 md:h-6" />} label="Debated" value={debatedCases.length} color="coral" />
           </div>
         </header>
 

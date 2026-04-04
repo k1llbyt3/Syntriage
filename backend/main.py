@@ -66,17 +66,17 @@ def get_debated_cases(db: Session = Depends(get_db)):
         return [] # Return empty instead of 500
 
 @app.post("/api/override-note/{note_id}")
-def override_note(note_id: int, new_urgency: str, doctor_name: str, db: Session = Depends(get_db)):
+def override_note(note_id: int, new_urgency: str, reviewer_name: str, db: Session = Depends(get_db)):
     note = db.get(ClinicalNote, note_id)
     if not note:
         return {"error": "Note not found"}
     
     note.urgency_level = new_urgency
-    note.override_by = doctor_name
-    note.override_at = datetime.utcnow()
+    note.override_by = reviewer_name
+    note.override_at = datetime.now()
     db.add(note)
     db.commit()
-    return {"status": "success", "message": f"Urgency overridden to {new_urgency}"}
+    return {"status": "success", "message": f"Urgency overridden to {new_urgency} by {reviewer_name}"}
 
 @app.get("/api/patients")
 def get_patients(db: Session = Depends(get_db)):
@@ -120,8 +120,8 @@ def get_patient_detail(patient_id: int, db: Session = Depends(get_db)):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     
-    # Emergency 'Fast-Track' Keywords
-    EMERGENCY_KEYWORDS = r"\b(chest pain|shortness of breath|unconscious|heavy bleeding|seizure|choking|stroke)\b"
+    # Emergency 'Fast-Track' Keywords (Enhanced Safety)
+    EMERGENCY_KEYWORDS = r"\b(chest pain|shortness of breath|difficulty breathing|unconscious|heavy bleeding|seizure|choking|stroke|head injury)\b"
     import re
 
     try:

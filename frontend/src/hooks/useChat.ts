@@ -124,7 +124,7 @@ export const useChat = () => {
     setMessages([
       { 
         role: "assistant", 
-        content: "Session reset. I am your Clinical Coordinator. How can I assist you today?" 
+        content: "Secure clinical session re-initialized. I am the Syntriage Clinical Coordinator. How can I assist you with patient triage, scheduling, or medical history review today?" 
       }
     ]);
     setStatus(null);

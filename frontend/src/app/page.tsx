@@ -57,32 +57,32 @@ export default function Home() {
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-orange-950/5 blur-[150px] rounded-full pointer-events-none z-10 opacity-40 transition-all" />
 
       {/* TOP HEADER CLEAN UNIFIED GRID */}
-      <header className="absolute top-4 left-0 w-full flex items-center justify-between px-6 z-[40]">
+      <header className="absolute top-4 left-0 w-full flex flex-col md:flex-row items-center justify-between px-6 z-[40] gap-4">
         
         {/* Left Side: Logo and Title Aligned */}
-        <div className="flex items-center gap-6">
-          <Image src="/logo.png" alt="Logo" width={80} height={80} className="object-contain" />
-          <h1 className="text-3xl font-black italic tracking-[0.3em] text-white">
+        <div className="flex items-center gap-3 md:gap-6">
+          <Image src="/logo.png" alt="Logo" width={60} height={60} className="object-contain md:w-[80px] md:h-[80px]" />
+          <h1 className="text-xl md:text-3xl font-black italic tracking-[0.2em] md:tracking-[0.3em] text-white">
             SYNTRIAGE
           </h1>
         </div>
 
-        {/* Right Side: Physician Hub Button */}
-        <div className="flex items-center gap-3">
+        {/* Right Side: Clinical Hub Button */}
+        <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-center md:justify-end">
           <button 
             onClick={resetChat}
-            className="px-6 py-3 bg-white/5 hover:bg-vibrant-coral/10 border border-white/10 hover:border-vibrant-coral/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+            className="flex-1 md:flex-none px-4 md:px-6 py-2.5 md:py-3 bg-white/5 hover:bg-vibrant-coral/10 border border-white/10 hover:border-vibrant-coral/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
           >
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 group-hover:text-vibrant-coral transition-colors">
-              RESET SESSION
+            <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/40 group-hover:text-vibrant-coral transition-colors">
+              RESET
             </span>
           </button>
           <Link 
             href="/dashboard" 
-            className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-primary-teal/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+            className="flex-1 md:flex-none px-6 md:px-8 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-primary-teal/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
           >
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/60 group-hover:text-primary-teal-light transition-colors">
-              PHYSICIAN HUB
+            <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/60 group-hover:text-primary-teal-light transition-colors">
+              CLINICAL HUB
             </span>
           </Link>
         </div>
@@ -190,17 +190,17 @@ export default function Home() {
         </div>
 
         {/* THE TACTILE HARDWARE GLASS CONTAINER */}
-        <div className="px-8 py-12 relative z-30">
-          <div className="max-w-4xl mx-auto mb-4 px-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-primary-teal animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                ACTIVE AGENT: <span className="text-primary-teal-light">{activeAgent}</span>
+        <div className="px-4 md:px-8 py-6 md:py-12 relative z-30">
+          <div className="max-w-4xl mx-auto mb-4 px-2 md:px-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-primary-teal animate-pulse" />
+              <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-[0.2em] text-white/40">
+                ACTIVE: <span className="text-primary-teal-light">{activeAgent}</span>
               </span>
             </div>
             {!isConnected && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-vibrant-coral animate-pulse flex items-center gap-2">
-                <WifiOff className="w-3 h-3" /> OFFLINE
+              <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-vibrant-coral animate-pulse flex items-center gap-1 md:gap-2">
+                <WifiOff className="w-2.5 h-2.5 md:w-3 md:h-3" /> OFFLINE
               </span>
             )}
           </div>
