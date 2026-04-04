@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,7 +44,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.BACKEND_URL = "${backendUrl}";`,
+            __html: `
+              window.BACKEND_URL = "${backendUrl}";
+              console.log("Syntriage Runtime Config: Backend URL is set to " + window.BACKEND_URL);
+            `,
           }}
         />
         {children}

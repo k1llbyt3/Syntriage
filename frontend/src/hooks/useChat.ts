@@ -33,10 +33,12 @@ export const useChat = () => {
       
       if (!wsUrl && typeof window !== "undefined") {
         // @ts-ignore - BACKEND_URL is injected in layout.tsx
-        const runtimeUrl = window.BACKEND_URL;
+        let runtimeUrl = window.BACKEND_URL;
         if (runtimeUrl) {
+          // Remove trailing slash if present
+          runtimeUrl = runtimeUrl.replace(/\/$/, "");
           // Convert http(s) to ws(s)
-          wsUrl = runtimeUrl.replace("http", "ws") + "/ws/chat";
+          wsUrl = runtimeUrl.replace(/^http/, "ws") + "/ws/chat";
         } else {
           // Final fallback
           const host = window.location.host;
@@ -45,7 +47,7 @@ export const useChat = () => {
         }
       }
       
-      console.log("Attempting WebSocket connection to:", wsUrl);
+      console.log("Syntriage WebSocket: Connecting to " + wsUrl);
       const socket = new WebSocket(wsUrl || "");
       socketRef.current = socket;
 
