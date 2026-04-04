@@ -31,12 +31,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Use BACKEND_URL at runtime (Cloud Run will provide this)
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+  
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.BACKEND_URL = "${backendUrl}";`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

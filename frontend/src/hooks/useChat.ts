@@ -28,22 +28,20 @@ export const useChat = () => {
     let timeoutId: NodeJS.Timeout;
     
     const connect = () => {
-      // Connect to WebSocket
+      // Connect to WebSocket using the injected BACKEND_URL or fallback
       let wsUrl = process.env.NEXT_PUBLIC_WS_URL;
       
-      if (!wsUrl) {
-        if (typeof window !== "undefined") {
+      if (!wsUrl && typeof window !== "undefined") {
+        // @ts-ignore - BACKEND_URL is injected in layout.tsx
+        const runtimeUrl = window.BACKEND_URL;
+        if (runtimeUrl) {
+          // Convert http(s) to ws(s)
+          wsUrl = runtimeUrl.replace("http", "ws") + "/ws/chat";
+        } else {
+          // Final fallback
           const host = window.location.host;
           const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-          
-          if (host.includes("localhost") || host.includes("127.0.0.1")) {
-            wsUrl = `${protocol}//127.0.0.1:8000/ws/chat`;
-          } else {
-            // In production, if not set, assume backend is at the same host but with 'backend' prefix 
-            // or just use the current host if they are served from the same place.
-            // But usually for Cloud Run/Vercel, they are separate.
-            wsUrl = `${protocol}//${host}/ws/chat`;
-          }
+          wsUrl = `${protocol}//${host}/ws/chat`;
         }
       }
       

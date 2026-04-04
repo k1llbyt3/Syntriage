@@ -66,7 +66,9 @@ export default function Dashboard() {
   // Dropdown State
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+  // @ts-ignore - BACKEND_URL is injected in layout.tsx
+  const runtimeApiBase = typeof window !== 'undefined' ? (window.BACKEND_URL ? `${window.BACKEND_URL}/api` : null) : null;
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || runtimeApiBase || "http://127.0.0.1:8000/api";
 
   useEffect(() => {
     const loadData = async () => {
