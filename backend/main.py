@@ -2,6 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPExcept
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel, Session, select
 from core.database import engine, get_db
+from core.config import settings
 from models.db_schema import Patient, Appointment, ClinicalNote, MedicalHistory, InsuranceProfile
 from agents.coordinator import coordinator
 import json
