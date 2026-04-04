@@ -99,10 +99,10 @@ export default function Dashboard() {
   }, [API_BASE]);
 
   const handleOverride = async (noteId: number, currentUrgency: string) => {
-    const doctorName = "Dr. Masterpiece"; // Mock doctor name
+    const reviewerName = "Clinical Admin"; // Neutral reviewer label
     const newUrgency = currentUrgency === "High" ? "Low" : "High"; // Toggle for demo
     try {
-      const res = await fetch(`${API_BASE}/override-note/${noteId}?new_urgency=${newUrgency}&doctor_name=${doctorName}`, {
+      const res = await fetch(`${API_BASE}/override-note/${noteId}?new_urgency=${newUrgency}&doctor_name=${reviewerName}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -334,9 +334,6 @@ export default function Dashboard() {
                   >
                     <td className="p-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-teal to-primary-teal-light flex items-center justify-center font-bold text-white text-xs">
-                          {p.name.charAt(0)}
-                        </div>
                         <span className="font-bold text-white group-hover:text-primary-teal-light transition-colors">{p.name}</span>
                       </div>
                     </td>
