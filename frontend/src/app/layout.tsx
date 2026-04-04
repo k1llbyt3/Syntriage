@@ -16,7 +16,13 @@ export const metadata: Metadata = {
   title: "Syntriage",
   description: "Advanced AI Clinical Coordinator",
   icons: {
-    icon: "/logo.png",
+    icon: [
+      { url: "/logo.png", href: "/logo.png" },
+    ],
+    apple: [
+      { url: "/logo.png", href: "/logo.png" },
+    ],
+    shortcut: ["/logo.png"],
   },
 };
 

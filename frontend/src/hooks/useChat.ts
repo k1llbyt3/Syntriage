@@ -8,7 +8,7 @@ interface Message {
 
 interface WidgetData {
   type: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export const useChat = () => {
@@ -120,5 +120,17 @@ export const useChat = () => {
     }
   }, []);
 
-  return { messages, status, activeAgent, widgetData, sendMessage, isConnected };
+  const resetChat = useCallback(() => {
+    setMessages([
+      { 
+        role: "assistant", 
+        content: "Session reset. I am your Clinical Coordinator. How can I assist you today?" 
+      }
+    ]);
+    setStatus(null);
+    setActiveAgent("Coordinator");
+    setWidgetData(null);
+  }, []);
+
+  return { messages, status, activeAgent, widgetData, sendMessage, resetChat, isConnected };
 };

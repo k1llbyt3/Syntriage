@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
-import { User, ShieldCheck, HeartPulse } from "lucide-react";
+import { User } from "lucide-react";
+
 import Image from "next/image";
 
 interface ChatBubbleProps {

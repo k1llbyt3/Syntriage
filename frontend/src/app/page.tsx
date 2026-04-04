@@ -6,24 +6,17 @@ import TimeSlot from "@/components/TimeSlot";
 import { useChat } from "@/hooks/useChat";
 import { 
   Send, 
-  Wifi, 
   WifiOff, 
-  LayoutDashboard, 
-  Sparkles,
-  Bot,
-  User as UserIcon,
-  ChevronRight,
   Calendar,
   Mic,
-  X,
-  AlertCircle
+  X
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
-  const { messages, status, activeAgent, widgetData, sendMessage, isConnected } = useChat();
+  const { messages, status, activeAgent, widgetData, sendMessage, resetChat, isConnected } = useChat();
   const [input, setInput] = useState("");
   const [showModal, setShowModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -36,8 +29,8 @@ export default function Home() {
 
   const handleTimeSelect = (time: string) => {
     if (widgetData?.type === "time_slots") {
-      const date = widgetData.data.date;
-      sendMessage(`I would like to book the ${time} slot on ${date}`);
+      const data = widgetData.data as { date: string };
+      sendMessage(`I would like to book the ${time} slot on ${data.date}`);
     }
   };
 
@@ -75,14 +68,24 @@ export default function Home() {
         </div>
 
         {/* Right Side: Physician Hub Button */}
-        <Link 
-          href="/dashboard" 
-          className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-primary-teal/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
-        >
-          <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/60 group-hover:text-primary-teal-light transition-colors">
-            PHYSICIAN HUB
-          </span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={resetChat}
+            className="px-6 py-3 bg-white/5 hover:bg-vibrant-coral/10 border border-white/10 hover:border-vibrant-coral/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+          >
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 group-hover:text-vibrant-coral transition-colors">
+              RESET SESSION
+            </span>
+          </button>
+          <Link 
+            href="/dashboard" 
+            className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-primary-teal/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+          >
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/60 group-hover:text-primary-teal-light transition-colors">
+              PHYSICIAN HUB
+            </span>
+          </Link>
+        </div>
       </header>
 
       {/* CUSTOM MODAL */}
@@ -138,7 +141,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto space-y-8">
             <AnimatePresence initial={false}>
               {messages.map((msg, i) => (
-                <ChatBubble key={i} role={msg.role as any} content={msg.content} />
+                <ChatBubble key={i} role={msg.role} content={msg.content} />
               ))}
             </AnimatePresence>
             
@@ -163,12 +166,12 @@ export default function Home() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-white">Select Appointment Window</h3>
-                      <p className="text-xs text-white/40 font-medium uppercase tracking-widest">Available Slots for {widgetData.data.date}</p>
+                      <p className="text-xs text-white/40 font-medium uppercase tracking-widest">Available Slots for {(widgetData.data as {date: string}).date}</p>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {widgetData.data.available_slots?.map((slot: string) => (
+                    {(widgetData.data as {available_slots?: string[]}).available_slots?.map((slot: string) => (
                       <TimeSlot 
                         key={slot} 
                         time={slot} 
@@ -177,7 +180,7 @@ export default function Home() {
                     ))}
                   </div>
                   
-                  {(!widgetData.data.available_slots || widgetData.data.available_slots.length === 0) && (
+                  {(!(widgetData.data as {available_slots?: string[]}).available_slots || (widgetData.data as {available_slots: string[]}).available_slots.length === 0) && (
                     <p className="text-sm text-vibrant-coral font-bold py-4">No slots available or database error occurred.</p>
                   )}
                 </motion.div>

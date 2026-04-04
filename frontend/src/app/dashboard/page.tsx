@@ -4,7 +4,6 @@ import {
   Users, 
   Calendar, 
   Activity, 
-  ArrowLeft, 
   MoreVertical, 
   Search, 
   Filter, 
@@ -19,16 +18,53 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface Patient {
+  id: number;
+  name: string;
+  email: string;
+  appointments: number;
+}
+
+interface DebatedCase {
+  note_id: number;
+  patient_name: string;
+  urgency: string;
+  transcript: string;
+  override_by?: string;
+}
+
+interface Appointment {
+  id: number;
+  time: string;
+  status: string;
+}
+
+interface PatientDetail {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  created_at: string;
+  appointments: Appointment[];
+}
+
 export default function Dashboard() {
-  const [patients, setPatients] = useState<any[]>([]);
-  const [debatedCases, setDebatedCases] = useState<any[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [debatedCases, setDebatedCases] = useState<DebatedCase[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
-  const [patientDetail, setPatientDetail] = useState<any>(null);
+  const [patientDetail, setPatientDetail] = useState<PatientDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Custom Delete Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingPatient, setDeletingPatient] = useState<{id: number, name: string} | null>(null);
+  
+  // Dropdown State
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
 
-  const API_BASE = "http://127.0.0.1:8000/api";
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
   useEffect(() => {
     const loadData = async () => {
@@ -53,14 +89,14 @@ export default function Dashboard() {
         setDebatedCases(Array.isArray(casesData) ? casesData : []);
       } catch (err) {
         console.error("Dashboard Load Error:", err);
-        setError("Unable to connect to the clinical server. Please ensure the backend is running at :8000");
+        setError("Unable to connect to the clinical server. Please ensure the backend is running.");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [API_BASE]);
 
   const handleOverride = async (noteId: number, currentUrgency: string) => {
     const doctorName = "Dr. Masterpiece"; // Mock doctor name
@@ -84,24 +120,28 @@ export default function Dashboard() {
   };
 
   const handleDeletePatient = async (id: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to PERMANENTLY remove clinical records for ${name}? This action cannot be undone.`)) {
-      return;
-    }
+    setDeletingPatient({ id, name });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingPatient) return;
     
     try {
-      const res = await fetch(`${API_BASE}/patients/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/patients/${deletingPatient.id}`, { method: 'DELETE' });
       if (res.ok) {
-        setPatients(patients.filter(p => p.id !== id));
-        // Clear detail if it was the deleted patient
-        if (selectedPatientId === id) setSelectedPatientId(null);
+        setPatients(patients.filter(p => p.id !== deletingPatient.id));
+        if (selectedPatientId === deletingPatient.id) setSelectedPatientId(null);
+        setShowDeleteModal(false);
+        setDeletingPatient(null);
       } else {
         const errorData = await res.json().catch(() => ({ detail: "Unknown server error" }));
-        console.error("Deletion failed:", errorData);
         throw new Error(errorData.detail || "Deletion failed on server");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Could not delete the patient record.");
+      const message = err instanceof Error ? err.message : "Could not delete the patient record.";
+      setError(message);
     }
   };
 
@@ -113,9 +153,10 @@ export default function Dashboard() {
       if (!res.ok) throw new Error("Patient not found");
       const data = await res.json();
       setPatientDetail(data);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setError("Could not retrieve patient details.");
+      const message = err instanceof Error ? err.message : "Could not retrieve patient details.";
+      setError(message);
     } finally {
       setLoadingDetail(false);
     }
@@ -314,15 +355,57 @@ export default function Dashboard() {
                       </div>
                     </td>
                     <td className="p-6">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePatient(p.id, p.name);
-                        }}
-                        className="p-2 hover:bg-vibrant-coral/10 text-white/20 hover:text-vibrant-coral rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdown(activeDropdown === p.id ? null : p.id);
+                          }}
+                          className="p-2 hover:bg-white/5 text-white/20 hover:text-white rounded-lg transition-colors cursor-pointer"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        <AnimatePresence>
+                          {activeDropdown === p.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setActiveDropdown(null)} 
+                              />
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-20 py-2 overflow-hidden"
+                              >
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    fetchPatientDetail(p.id);
+                                    setActiveDropdown(null);
+                                  }}
+                                  className="w-full px-4 py-3 text-left text-xs font-bold text-white/60 hover:text-primary-teal-light hover:bg-primary-teal/5 flex items-center gap-3 transition-colors"
+                                >
+                                  <UserIcon className="w-3.5 h-3.5" />
+                                  View Profile
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePatient(p.id, p.name);
+                                    setActiveDropdown(null);
+                                  }}
+                                  className="w-full px-4 py-3 text-left text-xs font-bold text-vibrant-coral/60 hover:text-vibrant-coral hover:bg-vibrant-coral/5 flex items-center gap-3 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Purge Record
+                                </button>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
@@ -392,7 +475,7 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     {patientDetail.appointments.length === 0 ? (
                       <p className="text-xs text-white/20 italic p-6 border border-dashed border-white/5 rounded-2xl text-center">No digital encounters registered yet.</p>
-                    ) : patientDetail.appointments.map((apt: any) => (
+                    ) : patientDetail.appointments.map((apt: Appointment) => (
                       <div key={apt.id} className="glass-card p-6 border-l-4 border-primary-teal">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
@@ -416,11 +499,64 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showDeleteModal && deletingPatient && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative glass-container p-8 max-w-md w-full border border-vibrant-coral/20 bg-neutral-900/90 shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-vibrant-coral/20 rounded-2xl flex items-center justify-center mb-6">
+                  <Trash2 className="w-8 h-8 text-vibrant-coral" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Purge Clinical Record?</h3>
+                <p className="text-sm text-white/40 leading-relaxed mb-8 tracking-normal">
+                  You are about to permanently remove all encrypted history and appointment data for <span className="text-white font-bold">{deletingPatient.name}</span>. This action is irreversible.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4 w-full">
+                  <button 
+                    onClick={() => setShowDeleteModal(false)}
+                    className="py-4 bg-white/5 hover:bg-white/10 text-white/60 font-bold uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all border border-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={confirmDelete}
+                    className="py-4 bg-vibrant-coral hover:bg-vibrant-coral/80 text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.3)]"
+                  >
+                    Confirm Purge
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, color }: any) {
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  color: 'teal' | 'coral';
+}
+
+function StatCard({ icon, label, value, color }: StatCardProps) {
   const isCoral = color === 'coral';
   return (
     <div className="glass-card p-6 flex items-center gap-6 min-w-[240px] relative overflow-hidden group">
