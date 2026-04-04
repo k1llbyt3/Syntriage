@@ -1,4 +1,3 @@
-# Use the official Python base image
 FROM python:3.12-slim
 
 # Set environment variables
@@ -6,10 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 
-# Set work directory
 WORKDIR /app
 
-# Install system dependencies (for psycopg2 or other libs)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -20,8 +18,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
+# Copy application
 COPY . .
 
-# Run the FastAPI app using Uvicorn
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+# Expose the port
+EXPOSE 8080
+
+# Run with uvicorn directly
+# We use 'main:app' because app is in main.py
+CMD uvicorn main:app --host 0.0.0.0 --port 8080
