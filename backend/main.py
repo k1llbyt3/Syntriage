@@ -10,6 +10,10 @@ from datetime import datetime
 
 app = FastAPI(title="Syntriage: Smart Patient Intake & Care Coordinator")
 
+@app.get("/")
+def read_root():
+    return {"message": "Syntriage API is live! Use /api/health for status."}
+
 # Hardened CORS Middleware for Clinical Orchestration
 app.add_middleware(
     CORSMiddleware,
