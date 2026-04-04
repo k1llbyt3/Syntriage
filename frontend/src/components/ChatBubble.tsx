@@ -25,7 +25,7 @@ export default function ChatBubble({ content, role }: ChatBubbleProps) {
         </div>
 
         <div
-          className={`relative p-5 rounded-3xl ${
+          className={`relative p-4 sm:p-5 rounded-3xl ${
             isUser
               ? "bg-primary-teal/80 backdrop-blur-md text-white rounded-tr-none"
               : "glass-card text-foreground rounded-tl-none border-white/10"

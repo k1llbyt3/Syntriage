@@ -9,7 +9,11 @@ import {
   WifiOff, 
   Calendar,
   Mic,
-  X
+  X,
+  Menu,
+  ChevronRight,
+  RefreshCw,
+  LayoutDashboard
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,6 +23,7 @@ export default function Home() {
   const { messages, status, activeAgent, widgetData, sendMessage, resetChat, isConnected } = useChat();
   const [input, setInput] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleSend = () => {
@@ -57,36 +62,114 @@ export default function Home() {
       <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-orange-950/5 blur-[150px] rounded-full pointer-events-none z-10 opacity-40 transition-all" />
 
       {/* TOP HEADER CLEAN UNIFIED GRID */}
-      <header className="absolute top-4 left-0 w-full flex flex-col md:flex-row items-center justify-between px-6 z-[40] gap-4">
+      <header className="absolute top-4 left-0 w-full flex flex-row items-center justify-between px-6 z-[40]">
         
         {/* Left Side: Logo and Title Aligned */}
         <div className="flex items-center gap-3 md:gap-6">
-          <Image src="/logo.png" alt="Logo" width={60} height={60} className="object-contain md:w-[80px] md:h-[80px]" />
-          <h1 className="text-xl md:text-3xl font-black italic tracking-[0.2em] md:tracking-[0.3em] text-white">
+          <Image src="/logo.png" alt="Logo" width={40} height={40} className="object-contain md:w-[80px] md:h-[80px]" />
+          <h1 className="text-lg md:text-3xl font-black italic tracking-[0.2em] md:tracking-[0.3em] text-white">
             SYNTRIAGE
           </h1>
         </div>
 
-        {/* Right Side: Clinical Hub Button */}
-        <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-center md:justify-end">
+        {/* Right Side: Navigation & Actions */}
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-3">
+            <button 
+              onClick={resetChat}
+              className="px-6 py-3 bg-white/5 hover:bg-vibrant-coral/10 border border-white/10 hover:border-vibrant-coral/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+            >
+              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/40 group-hover:text-vibrant-coral transition-colors">
+                RESET
+              </span>
+            </button>
+            <Link 
+              href="/dashboard" 
+              className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-primary-teal/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+            >
+              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/60 group-hover:text-primary-teal-light transition-colors">
+                CLINICAL HUB
+              </span>
+            </Link>
+          </div>
+
+          {/* Mobile Menu Button */}
           <button 
-            onClick={resetChat}
-            className="flex-1 md:flex-none px-4 md:px-6 py-2.5 md:py-3 bg-white/5 hover:bg-vibrant-coral/10 border border-white/10 hover:border-vibrant-coral/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
+            onClick={() => setIsMenuOpen(true)}
+            className="md:hidden p-3 bg-white/5 border border-white/10 rounded-2xl text-white/60 hover:text-white transition-all active:scale-95"
           >
-            <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/40 group-hover:text-vibrant-coral transition-colors">
-              RESET
-            </span>
+            <Menu className="w-6 h-6" />
           </button>
-          <Link 
-            href="/dashboard" 
-            className="flex-1 md:flex-none px-6 md:px-8 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-primary-teal/40 rounded-full transition-all group backdrop-blur-2xl shadow-xl flex items-center justify-center"
-          >
-            <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/60 group-hover:text-primary-teal-light transition-colors">
-              CLINICAL HUB
-            </span>
-          </Link>
         </div>
       </header>
+
+      {/* MOBILE SIDEBAR MENU */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] md:hidden"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 h-full w-[280px] bg-neutral-900 border-l border-white/10 z-[101] p-8 md:hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-12">
+                <span className="text-xs font-black uppercase tracking-[0.3em] text-white/40">Clinical Options</span>
+                <button 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-2 hover:bg-white/5 rounded-xl transition-all"
+                >
+                  <X className="w-5 h-5 text-white/40" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <button 
+                  onClick={() => {
+                    resetChat();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full p-6 bg-white/5 hover:bg-vibrant-coral/10 border border-white/10 rounded-2xl flex items-center justify-between group transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <RefreshCw className="w-5 h-5 text-vibrant-coral" />
+                    <span className="text-sm font-bold uppercase tracking-widest text-white/60">Reset Session</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/20" />
+                </button>
+
+                <Link 
+                  href="/dashboard"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full p-6 bg-white/5 hover:bg-primary-teal/10 border border-white/10 rounded-2xl flex items-center justify-between group transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <LayoutDashboard className="w-5 h-5 text-primary-teal-light" />
+                    <span className="text-sm font-bold uppercase tracking-widest text-white/60">Clinical Hub</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/20" />
+                </Link>
+              </div>
+
+              <div className="mt-auto pt-8 border-t border-white/5">
+                <div className="flex items-center gap-3 grayscale opacity-30">
+                  <Image src="/logo.png" alt="Logo" width={30} height={30} />
+                  <span className="text-[10px] font-black tracking-widest text-white">SYNTRIAGE AI</span>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* CUSTOM MODAL */}
       <AnimatePresence>
@@ -190,7 +273,7 @@ export default function Home() {
         </div>
 
         {/* THE TACTILE HARDWARE GLASS CONTAINER */}
-        <div className="px-4 md:px-8 py-6 md:py-12 relative z-30">
+        <div className="px-4 md:px-8 py-4 md:py-12 relative z-30">
           <div className="max-w-4xl mx-auto mb-4 px-2 md:px-4 flex items-center justify-between">
             <div className="flex items-center gap-2 md:gap-3">
               <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-primary-teal animate-pulse" />

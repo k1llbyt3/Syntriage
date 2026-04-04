@@ -165,7 +165,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 p-4 md:p-12 text-foreground font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-neutral-950 p-4 md:p-12 text-foreground font-sans relative overflow-x-hidden overflow-y-auto">
       {/* MOLECULAR BACKGROUND IMAGE LAYER (WARM SYNC) */}
       <div 
         className="fixed inset-0 z-0 opacity-30 pointer-events-none transition-opacity duration-1000 bg-[position:center_calc(50%+4px)] bg-no-repeat bg-[size:64%] blur-[3.5px]"
@@ -200,7 +200,7 @@ export default function Dashboard() {
             </div>
           </motion.div>
           
-          <div className="flex flex-row md:flex-wrap gap-3 md:gap-4 w-full md:w-auto justify-center">
+          <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:gap-4 w-full md:w-auto justify-center">
             <StatCard icon={<Users className="w-4 h-4 md:w-6 md:h-6" />} label="Active" value={patients.length} color="teal" />
             <StatCard icon={<Calendar className="w-4 h-4 md:w-6 md:h-6" />} label="Debated" value={debatedCases.length} color="coral" />
           </div>
@@ -312,8 +312,8 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="glass-container overflow-visible"
         >
-          <div className="overflow-x-auto overflow-y-visible">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto overflow-y-hidden scrollbar-hide pb-32">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-white/5 border-b border-white/5">
                   <th className="p-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Patient Profile</th>
@@ -378,28 +378,28 @@ export default function Dashboard() {
                                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                                 className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-[70] py-2 overflow-hidden"
                               >
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    fetchPatientDetail(p.id);
-                                    setActiveDropdown(null);
-                                  }}
-                                  className="w-full px-4 py-3 text-left text-xs font-bold text-white/60 hover:text-primary-teal-light hover:bg-primary-teal/5 flex items-center gap-3 transition-colors"
-                                >
-                                  <UserIcon className="w-3.5 h-3.5" />
-                                  View Profile
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeletePatient(p.id, p.name);
-                                    setActiveDropdown(null);
-                                  }}
-                                  className="w-full px-4 py-3 text-left text-xs font-bold text-vibrant-coral/60 hover:text-vibrant-coral hover:bg-vibrant-coral/5 flex items-center gap-3 transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  Purge Record
-                                </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      fetchPatientDetail(p.id);
+                                      setActiveDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-xs font-bold text-white/60 hover:text-primary-teal-light hover:bg-primary-teal/5 flex items-center gap-3 transition-colors"
+                                  >
+                                    <UserIcon className="w-3.5 h-3.5" />
+                                    View Record
+                                  </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePatient(p.id, p.name);
+                                      setActiveDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-xs font-bold text-vibrant-coral/60 hover:text-vibrant-coral hover:bg-vibrant-coral/5 flex items-center gap-3 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete Record
+                                  </button>
                               </motion.div>
                             </>
                           )}
@@ -522,7 +522,7 @@ export default function Dashboard() {
                 <div className="w-16 h-16 bg-vibrant-coral/20 rounded-2xl flex items-center justify-center mb-6">
                   <Trash2 className="w-8 h-8 text-vibrant-coral" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Purge Clinical Record?</h3>
+                <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Delete Patient Record?</h3>
                 <p className="text-sm text-white/40 leading-relaxed mb-8 tracking-normal">
                   You are about to permanently remove all encrypted history and appointment data for <span className="text-white font-bold">{deletingPatient.name}</span>. This action is irreversible.
                 </p>
@@ -534,12 +534,12 @@ export default function Dashboard() {
                   >
                     Cancel
                   </button>
-                  <button 
-                    onClick={confirmDelete}
-                    className="py-4 bg-vibrant-coral hover:bg-vibrant-coral/80 text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.3)]"
-                  >
-                    Confirm Purge
-                  </button>
+                    <button 
+                      onClick={confirmDelete}
+                      className="py-4 bg-vibrant-coral hover:bg-vibrant-coral/80 text-white font-bold uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.3)]"
+                    >
+                      Confirm Deletion
+                    </button>
                 </div>
               </div>
             </motion.div>
@@ -560,7 +560,7 @@ interface StatCardProps {
 function StatCard({ icon, label, value, color }: StatCardProps) {
   const isCoral = color === 'coral';
   return (
-    <div className="glass-card p-6 flex items-center gap-6 min-w-[240px] relative overflow-hidden group">
+    <div className="glass-card p-6 flex items-center gap-6 w-full md:min-w-[240px] relative overflow-hidden group">
       <div className={`p-4 ${isCoral ? 'bg-vibrant-coral/20 text-vibrant-coral' : 'bg-primary-teal/20 text-primary-teal-light'} rounded-2xl group-hover:scale-110 transition-transform`}>
         {icon}
       </div>
