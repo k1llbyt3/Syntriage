@@ -29,8 +29,9 @@ export const useChat = () => {
     
     const connect = () => {
       // Connect to WebSocket
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const socket = new WebSocket(`${protocol}//127.0.0.1:8000/ws/chat`);
+      const defaultWsUrl = window.location.protocol === "https:" ? `wss://${window.location.host}/ws/chat` : `ws://127.0.0.1:8000/ws/chat`;
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+      const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {

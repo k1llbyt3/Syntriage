@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: vital-backend
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vital-db
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://vital-frontend.vercel.app # Placeholder, user should update
+      - key: ENV
+        value: production
+
+databases:
+  - name: vital-db
+    plan: free

@@ -17,6 +17,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        settings.FRONTEND_URL,
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -140,11 +141,27 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json({"type": "message", "content": emergency_response})
                     continue
 
-                # The initial status is now more generic as the AI will push tool-level updates
-                await websocket.send_json({"type": "status", "content": "Syntriage Coordinator initialized..."})
+                # Status Prediction Logic (Phase 6, Req 14: WebSocket Streaming)
+                if any(k in user_message for k in ["symptom", "pain", "fever", "cough", "hurt", "ache", "feeling"]):
+                    await websocket.send_json({"type": "status", "content": "Triage Agent is evaluating symptoms..."})
+                elif any(k in user_message for k in ["history", "allergy", "previous", "record", "medicine", "pill"]):
+                    await websocket.send_json({"type": "status", "content": "History Agent is reviewing records..."})
+                elif any(k in user_message for k in ["book", "slot", "calendar", "appointment", "schedule"]):
+                    await websocket.send_json({"type": "status", "content": "Scheduling Agent is checking calendar..."})
+                elif any(k in user_message for k in ["insurance", "bill", "pay", "coverage"]):
+                    await websocket.send_json({"type": "status", "content": "Insurance Specialist is verifying billing..."})
+                else:
+                    await websocket.send_json({"type": "status", "content": "Clinical Coordinator is orchestrating..."})
+
                 try:
                     response, widget_data = await coordinator.get_response_with_widgets(user_message)
                     
+                    # Check if the response implies a debate happened (Phase 3 reconciliation)
+                    if "History Agent overrode Triage Agent" in response or (widget_data and widget_data.get("type") == "debate_event"):
+                         await websocket.send_json({"type": "status", "content": "Clinical Consensus Hub is cross-referencing triage with history..."})
+                         import asyncio
+                         await asyncio.sleep(1.5) # Allow the user to see the debate status
+
                     # Handle Tool-based dynamic status if widget_data is a status_update
                     if widget_data and widget_data.get("type") == "status_update":
                         status_msg = f"MCP Server: {widget_data['content']}"

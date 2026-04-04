@@ -188,6 +188,19 @@ export default function Home() {
 
         {/* THE TACTILE HARDWARE GLASS CONTAINER */}
         <div className="px-8 py-12 relative z-30">
+          <div className="max-w-4xl mx-auto mb-4 px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-primary-teal animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                ACTIVE AGENT: <span className="text-primary-teal-light">{activeAgent}</span>
+              </span>
+            </div>
+            {!isConnected && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-vibrant-coral animate-pulse flex items-center gap-2">
+                <WifiOff className="w-3 h-3" /> OFFLINE
+              </span>
+            )}
+          </div>
           <div className="flex items-center w-full max-w-4xl mx-auto rounded-3xl relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] transition-all group focus-within:shadow-[0_8px_40px_0_rgba(0,0,0,0.7)]">
             
             {/* Edge Glare Effect */}

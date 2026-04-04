@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_WS_URL": "wss://vital-backend.onrender.com/ws/chat",
+    "NEXT_PUBLIC_API_URL": "https://vital-backend.onrender.com/api"
+  }
+}
