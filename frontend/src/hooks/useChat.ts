@@ -29,9 +29,26 @@ export const useChat = () => {
     
     const connect = () => {
       // Connect to WebSocket
-      const defaultWsUrl = window.location.protocol === "https:" ? `wss://${window.location.host}/ws/chat` : `ws://127.0.0.1:8000/ws/chat`;
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
-      const socket = new WebSocket(wsUrl);
+      let wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+      
+      if (!wsUrl) {
+        if (typeof window !== "undefined") {
+          const host = window.location.host;
+          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+          
+          if (host.includes("localhost") || host.includes("127.0.0.1")) {
+            wsUrl = `${protocol}//127.0.0.1:8000/ws/chat`;
+          } else {
+            // In production, if not set, assume backend is at the same host but with 'backend' prefix 
+            // or just use the current host if they are served from the same place.
+            // But usually for Cloud Run/Vercel, they are separate.
+            wsUrl = `${protocol}//${host}/ws/chat`;
+          }
+        }
+      }
+      
+      console.log("Attempting WebSocket connection to:", wsUrl);
+      const socket = new WebSocket(wsUrl || "");
       socketRef.current = socket;
 
       socket.onopen = () => {
