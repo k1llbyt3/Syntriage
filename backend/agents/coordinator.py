@@ -13,7 +13,11 @@ from mcp_servers.history_tools import (
     fetch_medical_history,
 )
 from mcp_servers.notes_tools import save_patient_note, save_clinical_note
-from mcp_servers.insurance_tools import verify_coverage, verify_billing_status
+from mcp_servers.insurance_tools import (
+    verify_coverage, 
+    verify_billing_status,
+    register_insurance_profile
+)
 from mcp_servers.profile_tools import get_patient_profile, register_patient
 import json
 from datetime import datetime
@@ -24,6 +28,13 @@ def update_status(status_message: str):
     Pushes a real-time status update to the patient's UI.
     """
     return f"STATUS_UPDATE: {status_message}"
+
+
+def get_current_clinical_time():
+    """
+    Returns the current clinical system date and time. Use this for all date calculations (today, tomorrow, etc).
+    """
+    return datetime.now().strftime("%A, %B %d, %Y %I:%M %p")
 
 
 def transfer_to_agent(agent_name: str):
@@ -47,9 +58,11 @@ tools = [
     save_clinical_note,
     verify_coverage,
     verify_billing_status,
+    register_insurance_profile,
     get_patient_profile,
     register_patient,
     update_status,
+    get_current_clinical_time,
     transfer_to_agent,
 ]
 
@@ -110,8 +123,13 @@ class CoordinatorAgent:
             
             try:
                 chat = self._get_active_session(model_name)
-                # Rule 1: Parallel Tools + No SDK Retries (we handle retries via failover)
-                response = chat.send_message(user_input, request_options={"retry": None})
+                
+                # Rule 1: Inject Live Time Context (Solves "Tomorrow" logic)
+                time_context = f"[System Context: Today is {datetime.now().strftime('%A, %B %d, %Y')}]\n"
+                enriched_input = time_context + user_input
+                
+                # Rule 2: Parallel Tools + No SDK Retries (we handle retries via failover)
+                response = chat.send_message(enriched_input, request_options={"retry": None})
 
                 # ROBUST RESPONSE HANDLING
                 responseText = ""
@@ -149,7 +167,7 @@ class CoordinatorAgent:
                                 elif name == "trigger_consensus_debate":
                                     widget_data = {"type": "debate_event", "data": resp}
 
-                return responseText, widget_data
+                return responseText, widget_data, role_name
                 
             except Exception as e:
                 last_error = str(e)
@@ -159,7 +177,7 @@ class CoordinatorAgent:
                 continue
 
         # If all models in the pool fail
-        return f"SYSTEM_LOG: PARALLELA_POOL_EXHAUSTED: {last_error}", None
+        return f"SYSTEM_LOG: PARALLELA_POOL_EXHAUSTED: {last_error}", None, "System Recovery"
 
 
 coordinator = CoordinatorAgent()

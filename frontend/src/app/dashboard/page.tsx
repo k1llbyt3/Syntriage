@@ -37,6 +37,8 @@ interface Appointment {
   id: number;
   time: string;
   status: string;
+  note?: string | null;
+  urgency?: string | null;
 }
 
 interface PatientDetail {
@@ -102,7 +104,7 @@ export default function Dashboard() {
     const reviewerName = "Clinical Admin"; // Neutral reviewer label
     const newUrgency = currentUrgency === "High" ? "Low" : "High"; // Toggle for demo
     try {
-      const res = await fetch(`${API_BASE}/override-note/${noteId}?new_urgency=${newUrgency}&doctor_name=${reviewerName}`, {
+      const res = await fetch(`${API_BASE}/override-note/${noteId}?new_urgency=${newUrgency}&reviewer_name=${reviewerName}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -166,15 +168,15 @@ export default function Dashboard() {
     <div className="min-h-screen bg-neutral-950 p-4 md:p-12 text-foreground font-sans relative overflow-hidden">
       {/* MOLECULAR BACKGROUND IMAGE LAYER (WARM SYNC) */}
       <div 
-        className="absolute inset-0 z-0 opacity-30 pointer-events-none transition-opacity duration-1000 bg-[position:center_calc(50%+4px)] bg-no-repeat bg-[size:64%] blur-[3.5px]"
+        className="fixed inset-0 z-0 opacity-30 pointer-events-none transition-opacity duration-1000 bg-[position:center_calc(50%+4px)] bg-no-repeat bg-[size:64%] blur-[3.5px]"
         style={{ 
           backgroundImage: 'url("/warm.png")'
         }} 
       />
 
       {/* ATMOSPHERE ORBS (Warm Amber Balance) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-950/10 blur-[120px] rounded-full pointer-events-none z-10 opacity-70" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-orange-950/5 blur-[150px] rounded-full pointer-events-none z-10 opacity-40" />
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-950/10 blur-[120px] rounded-full pointer-events-none z-10 opacity-70" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-orange-950/5 blur-[150px] rounded-full pointer-events-none z-10 opacity-40" />
 
       <div className="max-w-7xl mx-auto relative z-30">
         
@@ -308,9 +310,9 @@ export default function Dashboard() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-container overflow-hidden"
+          className="glass-container overflow-visible"
         >
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white/5 border-b border-white/5">
@@ -319,7 +321,7 @@ export default function Dashboard() {
                   <th className="p-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Digital ID</th>
                   <th className="p-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Status</th>
                   <th className="p-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Encounters</th>
-                  <th className="p-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Actions</th>
+                  <th className="p-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -330,7 +332,7 @@ export default function Dashboard() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors group cursor-pointer ${selectedPatientId === p.id ? 'bg-white/5' : ''}`}
+                    className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors group cursor-pointer relative overflow-visible ${selectedPatientId === p.id ? 'bg-white/5' : ''}`}
                   >
                     <td className="p-6">
                       <div className="flex items-center gap-4">
@@ -351,8 +353,8 @@ export default function Dashboard() {
                         <span className="text-xs font-bold">{p.appointments} Registered</span>
                       </div>
                     </td>
-                    <td className="p-6">
-                      <div className="relative">
+                    <td className="p-6 text-right">
+                      <div className="relative inline-block text-left">
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -367,14 +369,14 @@ export default function Dashboard() {
                           {activeDropdown === p.id && (
                             <>
                               <div 
-                                className="fixed inset-0 z-10" 
+                                className="fixed inset-0 z-[60]" 
                                 onClick={() => setActiveDropdown(null)} 
                               />
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-20 py-2 overflow-hidden"
+                                className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-[70] py-2 overflow-hidden"
                               >
                                 <button 
                                   onClick={(e) => {
@@ -479,12 +481,14 @@ export default function Dashboard() {
                             <Clock className="w-3 h-3 text-primary-teal-light" />
                             <span className="text-xs font-bold text-white">{new Date(apt.time).toLocaleString()}</span>
                           </div>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-primary-teal-light bg-primary-teal/10 px-2 py-1 rounded">{apt.status}</span>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${apt.urgency === 'High' ? 'bg-vibrant-coral/20 text-vibrant-coral' : 'bg-primary-teal/10 text-primary-teal-light'}`}>
+                            {apt.urgency ? `${apt.urgency} Urgency` : apt.status}
+                          </span>
                         </div>
                         <div className="flex items-start gap-3 p-4 bg-white/5 rounded-xl">
                           <Clipboard className="w-4 h-4 text-white/20 mt-1 shrink-0" />
                           <p className="text-xs text-white/60 leading-relaxed font-medium">
-                            AI-generated encounter summary pending sync from clinical notes table.
+                            {apt.note || "Encounter finalized. AI summary processing..."}
                           </p>
                         </div>
                       </div>

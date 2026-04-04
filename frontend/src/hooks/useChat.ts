@@ -51,11 +51,26 @@ export const useChat = () => {
           const data = JSON.parse(event.data);
           
           if (data.type === "status") {
-            setStatus(data.content);
-            if (data.content.includes("TRANSFERRED_TO_")) {
-              const agent = data.content.split("TRANSFERRED_TO_")[1].split(":")[0];
-              setActiveAgent(agent.charAt(0) + agent.slice(1).toLowerCase());
+            const content = data.content;
+            setStatus(content);
+            
+            // DYNAMIC AGENT DETECTION (PREDICTIVE)
+            if (content.toLowerCase().includes("triage") || content.toLowerCase().includes("symptoms")) {
+              setActiveAgent("Triage Specialist");
+            } else if (content.toLowerCase().includes("history") || content.toLowerCase().includes("records")) {
+              setActiveAgent("History Specialist");
+            } else if (content.toLowerCase().includes("scheduling") || content.toLowerCase().includes("calendar") || content.toLowerCase().includes("appointment")) {
+              setActiveAgent("Scheduling Coordinator");
+            } else if (content.toLowerCase().includes("insurance") || content.toLowerCase().includes("billing")) {
+              setActiveAgent("Insurance Specialist");
+            } else if (content.toLowerCase().includes("consensus") || content.toLowerCase().includes("cross-referencing")) {
+              setActiveAgent("Clinical Consensus Hub");
+            } else if (content.toLowerCase().includes("orchestrating")) {
+              setActiveAgent("Clinical Coordinator");
             }
+          } else if (data.type === "agent_role") {
+            // EXPLICIT AGENT IDENTITY (FROM BACKEND)
+            setActiveAgent(data.content);
           } else if (data.type === "message") {
             setMessages(prev => [...prev, { role: "assistant", content: data.content }]);
             setStatus(null);

@@ -104,16 +104,25 @@ def get_patient_detail(patient_id: int, db: Session = Depends(get_db)):
     statement_apt = select(Appointment).where(Appointment.patient_id == patient_id)
     appointments = db.exec(statement_apt).all()
     
+    result_appointments = []
+    for a in appointments:
+        statement_note = select(ClinicalNote).where(ClinicalNote.appointment_id == a.id)
+        note = db.exec(statement_note).first()
+        result_appointments.append({
+            "id": a.id, 
+            "time": a.appointment_time, 
+            "status": a.status,
+            "note": note.content if note else None,
+            "urgency": note.urgency_level if note else None
+        })
+    
     return {
         "id": patient.id,
         "first_name": patient.first_name,
         "last_name": patient.last_name,
         "email": patient.email,
         "created_at": patient.created_at,
-        "appointments": [
-            {"id": a.id, "time": a.appointment_time, "status": a.status}
-            for a in appointments
-        ]
+        "appointments": result_appointments
     }
 
 @app.websocket("/ws/chat")
@@ -155,8 +164,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json({"type": "status", "content": "Clinical Coordinator is orchestrating..."})
 
                 try:
-                    response, widget_data = await coordinator.get_response_with_widgets(user_message)
+                    response, widget_data, role_name = await coordinator.get_response_with_widgets(user_message)
                     
+                    # Explicit Agent Switch for UI
+                    await websocket.send_json({"type": "agent_role", "content": role_name})
+
                     # Check if the response implies a debate happened (Phase 3 reconciliation)
                     if "History Agent overrode Triage Agent" in response or (widget_data and widget_data.get("type") == "debate_event"):
                          await websocket.send_json({"type": "status", "content": "Clinical Consensus Hub is cross-referencing triage with history..."})

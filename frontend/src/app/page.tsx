@@ -44,17 +44,17 @@ export default function Home() {
     <main className="relative min-h-screen overflow-hidden bg-neutral-950 flex flex-col font-sans text-[#e0e0e0]">
       {/* MOLECULAR BACKGROUND IMAGE LAYER (WARM OBSIDIAN) */}
       <div 
-        className="absolute inset-0 z-0 opacity-30 pointer-events-none transition-opacity duration-1000 bg-[position:center_calc(50%+4px)] bg-no-repeat bg-[size:64%] blur-[3.5px]"
+        className="fixed inset-0 z-0 opacity-30 pointer-events-none transition-opacity duration-1000 bg-[position:center_calc(50%+4px)] bg-no-repeat bg-[size:64%] blur-[3.5px]"
         style={{ 
           backgroundImage: 'url("/warm.png")',
         }} 
       />
 
       {/* GLOWING ORB BACKGROUND (Warm Amber) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-950/10 blur-[120px] rounded-full pointer-events-none z-10 opacity-70" />
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-950/10 blur-[120px] rounded-full pointer-events-none z-10 opacity-70" />
       
       {/* SECONDARY BALANCE GLOW (Warm Charcoal) */}
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-orange-950/5 blur-[150px] rounded-full pointer-events-none z-10 opacity-40 transition-all" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-orange-950/5 blur-[150px] rounded-full pointer-events-none z-10 opacity-40 transition-all" />
 
       {/* TOP HEADER CLEAN UNIFIED GRID */}
       <header className="absolute top-4 left-0 w-full flex flex-col md:flex-row items-center justify-between px-6 z-[40] gap-4">

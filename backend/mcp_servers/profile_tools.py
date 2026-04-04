@@ -31,7 +31,17 @@ def register_patient(first_name: str, last_name: str, email: str):
             if existing:
                 return {"status": "Exists", "id": existing.id, "message": "Patient already registered."}
             
+            # ID REUSE LOGIC: Find the smallest available ID gap
+            all_ids = db.exec(select(Patient.id).order_by(Patient.id)).all()
+            next_id = 1
+            for existing_id in all_ids:
+                if existing_id == next_id:
+                    next_id += 1
+                else:
+                    break # Found a gap!
+            
             new_patient = Patient(
+                id=next_id, # Manually set the ID to fill the gap
                 first_name=first_name,
                 last_name=last_name,
                 email=email
@@ -39,7 +49,13 @@ def register_patient(first_name: str, last_name: str, email: str):
             db.add(new_patient)
             db.commit()
             db.refresh(new_patient)
-            return {"status": "success", "id": new_patient.id, "message": "New patient record created via Email-only identity."}
+            
+            # IDENTITY SEQUENCE HARDENING: Re-sync Postgres serial sequence to avoid UniqueConstraint errors
+            from sqlalchemy import text
+            db.exec(text("SELECT setval(pg_get_serial_sequence('patient', 'id'), (SELECT MAX(id) FROM patient))"))
+            db.commit()
+            
+            return {"status": "success", "id": new_patient.id, "message": f"New patient record created with ID {new_patient.id}."}
         except Exception as e:
             db.rollback()
             return {"status": "error", "message": str(e)}
