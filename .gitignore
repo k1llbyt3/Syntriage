@@ -1,0 +1,44 @@
+# Dependency directories
+node_modules/
+backend/__pycache__/
+backend/venv/
+backend/.env
+.venv/
+env/
+venv/
+ENV/
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables (already covered above, but for clarity)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python artifacts
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
