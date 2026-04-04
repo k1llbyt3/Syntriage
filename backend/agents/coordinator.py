@@ -1,46 +1,146 @@
 import google.generativeai as genai
 from core.config import settings
 from agents.prompts import COORDINATOR_SYSTEM_PROMPT
-from mcp_servers.triage_tools import evaluate_urgency
-from mcp_servers.schedule_tools import check_availability, book_appointment
-from mcp_servers.history_tools import update_allergies, add_medication
-from mcp_servers.notes_tools import save_patient_note
-from mcp_servers.insurance_tools import verify_coverage
-from mcp_servers.profile_tools import get_patient_profile
-
-genai.configure(api_key=settings.GOOGLE_API_KEY)
-
-# Define tools for Gemini to use
-tools = [
+from mcp_servers.triage_tools import (
     evaluate_urgency,
-    check_availability,
-    book_appointment,
+    check_medical_protocol,
+    trigger_consensus_debate,
+)
+from mcp_servers.schedule_tools import get_available_slots, book_slot
+from mcp_servers.history_tools import (
     update_allergies,
     add_medication,
+    fetch_medical_history,
+)
+from mcp_servers.notes_tools import save_patient_note, save_clinical_note
+from mcp_servers.insurance_tools import verify_coverage, verify_billing_status
+from mcp_servers.profile_tools import get_patient_profile, register_patient
+import json
+from datetime import datetime
+
+
+def update_status(status_message: str):
+    """
+    Pushes a real-time status update to the patient's UI.
+    """
+    return f"STATUS_UPDATE: {status_message}"
+
+
+def transfer_to_agent(agent_name: str):
+    """
+    Transfers the conversation context to a specialized sub-agent.
+    """
+    return f"TRANSFERRED_TO_{agent_name.upper()}: I am now operating as the {agent_name}."
+
+
+# Define tools
+tools = [
+    evaluate_urgency,
+    check_medical_protocol,
+    trigger_consensus_debate,
+    get_available_slots,
+    book_slot,
+    update_allergies,
+    add_medication,
+    fetch_medical_history,
     save_patient_note,
+    save_clinical_note,
     verify_coverage,
-    get_patient_profile # New tool for recognition
+    verify_billing_status,
+    get_patient_profile,
+    register_patient,
+    update_status,
+    transfer_to_agent,
 ]
+
 
 class CoordinatorAgent:
     def __init__(self):
-        # Gemini 2.0 Flash for high-speed coordination
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=COORDINATOR_SYSTEM_PROMPT,
-            tools=tools,
-        )
-        self.chat = self.model.start_chat(
-            history=[], 
-            enable_automatic_function_calling=True
-        )
+        print(f"DEBUG: Initializing Syntriage Tiered Clinical Orchestrator (v2.5)...")
+        genai.configure(api_key=settings.GOOGLE_API_KEY)
+        
+        # Tiered Model Pool (Assigned roles as per Quota SOP)
+        self.model_pool = [
+            "gemini-2.5-pro",        # Tier 1: Heavy Brain (Primary Coordinator)
+            "gemini-2.5-flash",      # Tier 2: Sweet Spot (Triage Reasoning)
+            "gemini-2.5-flash-lite"  # Tier 3: Workhorse (Throughput Champion)
+        ]
+        self.active_model_index = 0
+        self.chat_sessions = {}  # Store chat sessions per model if needed
 
-    async def get_response(self, user_input: str):
-        try:
-            response = self.chat.send_message(user_input)
-            return response.text
-        except Exception as e:
-            print(f"Agent Hub Error: {e}")
-            return f"SYSTEM_LOG: AGENT_HUB_COMM_FAIL: {str(e)}"
+    def _get_active_session(self, model_name: str):
+        if model_name not in self.chat_sessions:
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=COORDINATOR_SYSTEM_PROMPT.format(current_time=datetime.now().strftime("%A, %B %d, %Y %I:%M %p")),
+                tools=tools,
+            )
+            self.chat_sessions[model_name] = model.start_chat(
+                history=[], enable_automatic_function_calling=True
+            )
+        return self.chat_sessions[model_name]
+
+    def _to_dict(self, obj):
+        # Robust conversion for MapComposite/RepeatedComposite
+        if hasattr(obj, "items"):
+            return {k: self._to_dict(v) for k, v in obj.items()}
+        elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes)):
+            return [self._to_dict(v) for v in obj]
+        return obj
+
+    async def get_response_with_widgets(self, user_input: str):
+        """
+        Parallel Model Failover: Attempts to process through the model pool
+        if a quota (429) or discovery (404) error occurs.
+        """
+        # Clinical Identity Branding (Professional naming only)
+        ROLE_NAMES = {
+            "gemini-2.5-pro": "Smart Coordinator",
+            "gemini-2.5-flash": "Clinical Triage Server",
+            "gemini-2.5-flash-lite": "Patient Registry Server"
+        }
+        
+        last_error = None
+        
+        # Try up to 3 models in the pool
+        for _ in range(len(self.model_pool)):
+            model_name = self.model_pool[self.active_model_index]
+            role_name = ROLE_NAMES.get(model_name, "Clinical AI")
+            print(f"DEBUG: Attempting turn with {model_name}...")
+            
+            try:
+                chat = self._get_active_session(model_name)
+                # Rule 1: Parallel Tools + No SDK Retries (we handle retries via failover)
+                response = chat.send_message(user_input, request_options={"retry": None})
+
+                widget_data = None
+                history = chat.history
+                if history:
+                    for msg in history[-5:]:
+                        for part in msg.parts:
+                            if hasattr(part, "function_response"):
+                                name = part.function_response.name
+                                # Convert specialized protocol objects to pure dicts/lists
+                                resp = self._to_dict(part.function_response.response)
+
+                                if name == "get_available_slots":
+                                    widget_data = {"type": "time_slots", "data": resp}
+                                elif name == "update_status":
+                                    widget_data = {"type": "status_update", "content": resp}
+                                elif name == "trigger_consensus_debate":
+                                    widget_data = {"type": "debate_event", "data": resp}
+
+                return response.text, widget_data
+                
+            except Exception as e:
+                last_error = str(e)
+                print(f"DEBUG: {model_name} Error: {last_error}")
+                # Rotate to next model in pool on 429 (Quota) or 404 (Not Found)
+                self.active_model_index = (self.active_model_index + 1) % len(self.model_pool)
+                continue
+
+        # If all models in the pool fail
+        return f"SYSTEM_LOG: PARALLELA_POOL_EXHAUSTED: {last_error}", None
+
 
 coordinator = CoordinatorAgent()

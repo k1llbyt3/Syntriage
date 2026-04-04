@@ -1,58 +1,53 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from typing import List, Optional
 from datetime import datetime
+from sqlmodel import SQLModel, Field, Relationship
 
-Base = declarative_base()
+class Patient(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    first_name: str
+    last_name: str
+    email: str = Field(unique=True, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-class Patient(Base):
-    __tablename__ = 'patients'
-    id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String(50))
-    last_name = Column(String(50))
-    email = Column(String(100), unique=True, index=True)
-    phone = Column(String(20))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    history: Optional["MedicalHistory"] = Relationship(back_populates="patient")
+    appointments: List["Appointment"] = Relationship(back_populates="patient")
+    # insurance: Optional["InsuranceProfile"] = Relationship(back_populates="patient") # Removing for now to fix recursive error if any
 
-    history = relationship("MedicalHistory", back_populates="patient", uselist=False)
-    appointments = relationship("Appointment", back_populates="patient")
-    insurance = relationship("InsuranceProfile", back_populates="patient", uselist=False)
-
-class MedicalHistory(Base):
-    __tablename__ = 'medical_histories'
-    id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey('patients.id'))
-    allergies = Column(Text)
-    medications = Column(Text)
-    past_surgeries = Column(Text)
+class MedicalHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id")
+    allergies: Optional[str] = None
+    medications: Optional[str] = None
+    past_surgeries: Optional[str] = None
     
-    patient = relationship("Patient", back_populates="history")
+    patient: Patient = Relationship(back_populates="history")
 
-class Appointment(Base):
-    __tablename__ = 'appointments'
-    id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey('patients.id'))
-    appointment_time = Column(DateTime)
-    status = Column(String(20)) # e.g., Scheduled, Completed, Cancelled
+class Appointment(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id")
+    appointment_time: datetime
+    status: str = "Scheduled" 
     
-    patient = relationship("Patient", back_populates="appointments")
-    notes = relationship("VisitNote", back_populates="appointment")
+    patient: Patient = Relationship(back_populates="appointments")
+    notes: List["ClinicalNote"] = Relationship(back_populates="appointment")
 
-class VisitNote(Base):
-    __tablename__ = 'visit_notes'
-    id = Column(Integer, primary_key=True, index=True)
-    appointment_id = Column(Integer, ForeignKey('appointments.id'))
-    note_content = Column(Text)
-    urgency_level = Column(String(20)) # Low, Med, High, ER
+class ClinicalNote(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    appointment_id: Optional[int] = Field(default=None, foreign_key="appointment.id")
+    note_content: str
+    urgency_level: str = "Low" 
+    is_debated: bool = Field(default=False)
+    debate_transcript: Optional[str] = None
+    override_by: Optional[str] = None
+    override_at: Optional[datetime] = None
     
-    appointment = relationship("Appointment", back_populates="notes")
+    appointment: Optional[Appointment] = Relationship(back_populates="notes")
 
-class InsuranceProfile(Base):
-    __tablename__ = 'insurance_profiles'
-    id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey('patients.id'))
-    provider_name = Column(String(100))
-    member_id = Column(String(50))
-    group_id = Column(String(50))
+class InsuranceProfile(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id")
+    provider_name: str
+    member_id: str
+    group_id: Optional[str] = None
     
-    patient = relationship("Patient", back_populates="insurance")
+    # patient: Patient = Relationship(back_populates="insurance")

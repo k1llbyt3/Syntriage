@@ -29,13 +29,12 @@ export default function StatusPill({ status }: StatusPillProps) {
       >
         <div className="relative">
           <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [1, 0.6, 1] }}
+            animate={{ scale: [1, 1.1, 1] }}
             transition={{ repeat: Infinity, duration: 2 }}
             className="text-primary-teal-light"
           >
             {getIcon()}
           </motion.div>
-          <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-teal-light rounded-full animate-ping" />
         </div>
         <span className="text-[11px] font-bold uppercase tracking-wider text-primary-teal-light">
           {status}

@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { User, ShieldCheck, HeartPulse } from "lucide-react";
+import Image from "next/image";
 
 interface ChatBubbleProps {
   content: string;
@@ -20,8 +21,12 @@ export default function ChatBubble({ content, role }: ChatBubbleProps) {
       <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[85%]`}>
         {/* Identity Label */}
         <div className="flex items-center gap-2 mb-1 px-2 opacity-40 group-hover:opacity-100 transition-opacity">
-          {!isUser && <HeartPulse className="w-3 h-3 text-primary-teal-light" />}
-          <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+          {!isUser && (
+            <div className="w-4 h-4 overflow-hidden rounded-full flex items-center justify-center">
+              <Image src="/logo.png" alt="Coordinator" width={16} height={16} className="object-cover" />
+            </div>
+          )}
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-white">
             {isUser ? "Patient" : "Smart Coordinator"}
           </span>
           {isUser && <User className="w-3 h-3 text-white" />}
@@ -30,18 +35,13 @@ export default function ChatBubble({ content, role }: ChatBubbleProps) {
         <div
           className={`relative p-5 rounded-3xl ${
             isUser
-              ? "bg-primary-teal/80 backdrop-blur-md text-white rounded-tr-none shadow-[0_0_20px_rgba(13,148,136,0.3)]"
-              : "glass-card text-foreground rounded-tl-none border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+              ? "bg-primary-teal/80 backdrop-blur-md text-white rounded-tr-none"
+              : "glass-card text-foreground rounded-tl-none border-white/10"
           }`}
         >
-          <p className="text-sm leading-relaxed font-medium tracking-tight">
+          <p className="text-sm leading-relaxed font-medium">
             {content}
           </p>
-          
-          {/* Subtle Glow for Assistant */}
-          {!isUser && (
-            <div className="absolute -inset-0.5 bg-primary-teal/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl -z-10" />
-          )}
         </div>
       </div>
     </motion.div>

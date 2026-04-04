@@ -12,7 +12,7 @@ export default function TimeSlot({ time, onSelect, isSelected }: TimeSlotProps) 
       onClick={() => onSelect(time)}
       className={`px-4 py-2 rounded-lg border transition-all text-sm font-medium ${
         isSelected
-          ? "bg-primary-teal border-primary-teal text-white shadow-lg scale-105"
+          ? "bg-primary-teal border-primary-teal text-white"
           : "glass-card border-white/10 hover:border-primary-teal/50 hover:bg-white/5"
       }`}
     >
