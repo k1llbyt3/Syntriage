@@ -71,16 +71,15 @@ tools = [
 
 class CoordinatorAgent:
     def __init__(self):
-        print(f"DEBUG: Initializing Syntriage Stateless Orchestrator (v2.9)...")
+        print(f"DEBUG: Initializing Syntriage Stateless Orchestrator (v3.3 - QUOTA BYPASS)...")
         genai.configure(api_key=settings.GOOGLE_API_KEY)
         
-        # 2026 HIGH-QUOTA POOL: Prioritizing models with the highest daily limits
+        # 2026 MULTI-GEN POOL: Spreading load across different model families to avoid project-wide 429s
         self.model_pool = [
-            "gemini-3.1-flash-lite",  # 1,500 Requests/Day
-            "gemini-3-flash",         # 1,000 Requests/Day
-            "gemini-2.5-flash",       # 500 Requests/Day (Fallback)
-            "gemini-1.5-flash",       # Stable Backup
-            "gemini-2.5-pro"          # Reasoning Specialist
+            "gemini-1.5-flash-lite",  # Family A: High legacy quota
+            "gemini-2.5-flash-lite",  # Family B: High current quota
+            "gemini-3.1-flash-lite",  # Family C: Next-gen quota
+            "gemini-1.5-pro"          # Family D: Emergency fallback
         ]
         self.active_model_index = 0
         self.exhausted_models = set()
@@ -92,32 +91,29 @@ class CoordinatorAgent:
             return [self._to_dict(v) for v in obj]
         return obj
 
-    def prune_history(self, history, max_turns=8):
-        """Reduces token count to prevent TPM (Tokens Per Minute) 429 errors."""
+    def prune_history(self, history, max_turns=3):
+        """Extreme pruning to 3 turns to stay under Token/Minute (TPM) limits."""
         if len(history) > max_turns * 2:
             return history[-(max_turns * 2):]
         return history
 
     async def get_response_with_widgets(self, user_input: str, history=None):
         """
-        Processes a request with persistent failover logic across sessions.
+        Processes a request with persistent failover and quota-saving logic.
         """
         ROLE_NAMES = {
-            "gemini-3.1-flash-lite": "Care Assistant",
-            "gemini-3-flash": "Clinical Specialist",
-            "gemini-2.5-flash": "Triage Agent",
-            "gemini-1.5-flash": "System Backup",
-            "gemini-2.5-pro": "Expert Coordinator"
+            "gemini-1.5-flash-lite": "Care Assistant",
+            "gemini-2.5-flash-lite": "Clinical Specialist",
+            "gemini-3.1-flash-lite": "Expert Coordinator",
+            "gemini-1.5-pro": "System Recovery"
         }
         
         current_history = self.prune_history(history or [])
-        last_error_was_429 = False
+        last_error_was_quota = False
 
-        # Attempt to find a working model in the pool
         for attempt in range(len(self.model_pool)):
             model_name = self.model_pool[self.active_model_index]
             
-            # If the current model is known to be exhausted, skip it
             if model_name in self.exhausted_models:
                 self.active_model_index = (self.active_model_index + 1) % len(self.model_pool)
                 continue
@@ -125,23 +121,24 @@ class CoordinatorAgent:
             role_name = ROLE_NAMES.get(model_name, "Clinical AI")
             
             try:
-                # 1. Initialize Model
+                # OPTIMIZATION: Use a lighter system prompt if we've hit errors already
+                sys_prompt = COORDINATOR_SYSTEM_PROMPT
+                if attempt > 0:
+                    sys_prompt = "You are a helpful clinical assistant. Answer briefly. Use tools if needed."
+
                 model = genai.GenerativeModel(
                     model_name=model_name,
-                    system_instruction=COORDINATOR_SYSTEM_PROMPT.format(
+                    system_instruction=sys_prompt.format(
                         current_time=datetime.now().strftime("%A, %B %d, %Y %I:%M %p")
                     ),
-                    tools=tools,
+                    tools=tools if attempt == 0 else None, # Disable tools on later failovers to save tokens
                 )
                 
-                # 2. Start Chat
-                chat = model.start_chat(history=current_history, enable_automatic_function_calling=True)
+                chat = model.start_chat(history=current_history, enable_automatic_function_calling=True if attempt == 0 else False)
                 
-                # 3. Process Input
-                time_context = f"[Context: {datetime.now().strftime('%A, %B %d, %Y')}]\n"
+                time_context = f"Today is {datetime.now().strftime('%A, %B %d')}. "
                 response = chat.send_message(time_context + user_input, request_options={"retry": None})
 
-                # 4. Extract Text
                 responseText = ""
                 if response.candidates and response.candidates[0].content.parts:
                     for part in response.candidates[0].content.parts:
@@ -149,51 +146,48 @@ class CoordinatorAgent:
                             responseText += part.text
                 
                 if not responseText:
-                    responseText = "Request acknowledged. How can I assist you today?"
+                    responseText = "Acknowledged. How can I help?"
 
-                # 5. Extract Widget/Role from Function Calls
+                # Extract widgets only if tools were enabled
                 widget_data = None
-                for msg in reversed(chat.history[-5:]):
-                    for part in msg.parts:
-                        if hasattr(part, "function_call"):
-                            call_name = part.function_call.name
-                            if call_name in ["get_patient_records", "fetch_medical_history", "save_clinical_note"]:
-                                role_name = "Records Specialist"
-                            elif call_name in ["evaluate_urgency", "check_medical_protocol"]:
-                                role_name = "Triage Specialist"
-                            elif call_name in ["get_available_slots", "book_slot"]:
-                                role_name = "Scheduling Coordinator"
+                if attempt == 0:
+                    for msg in reversed(chat.history[-5:]):
+                        for part in msg.parts:
+                            if hasattr(part, "function_call"):
+                                call_name = part.function_call.name
+                                if call_name in ["get_patient_records", "fetch_medical_history", "save_clinical_note"]:
+                                    role_name = "Records Specialist"
+                                elif call_name in ["evaluate_urgency", "check_medical_protocol"]:
+                                    role_name = "Triage Specialist"
+                                elif call_name in ["get_available_slots", "book_slot"]:
+                                    role_name = "Scheduling Coordinator"
 
-                        if hasattr(part, "function_response"):
-                            name = part.function_response.name
-                            resp = self._to_dict(part.function_response.response)
-                            if name == "get_available_slots":
-                                widget_data = {"type": "time_slots", "data": resp}
-                            elif name == "update_status":
-                                widget_data = {"type": "status_update", "content": resp}
+                            if hasattr(part, "function_response"):
+                                name = part.function_response.name
+                                resp = self._to_dict(part.function_response.response)
+                                if name == "get_available_slots":
+                                    widget_data = {"type": "time_slots", "data": resp}
+                                elif name == "update_status":
+                                    widget_data = {"type": "status_update", "content": resp}
 
                 return responseText, widget_data, role_name, chat.history
                 
             except Exception as e:
                 error_msg = str(e).lower()
-                print(f"FAILOVER ALERT: Model {model_name} failed. Error: {error_msg}")
+                print(f"QUOTA FAILOVER: Model {model_name} failed. Error: {error_msg}")
                 
                 if "429" in error_msg or "quota" in error_msg:
-                    last_error_was_429 = True
+                    last_error_was_quota = True
                     self.exhausted_models.add(model_name)
+                    await asyncio.sleep(1) # Small throttle
                 
-                # Immediately move to next model for the next attempt
                 self.active_model_index = (self.active_model_index + 1) % len(self.model_pool)
-                
-                # Optional: Brief pause if hitting RPM (Requests Per Minute)
-                await asyncio.sleep(0.5)
                 continue
 
-        # If all models in the pool are exhausted
-        if last_error_was_429:
-            self.exhausted_models.clear() # Reset for next session
+        if last_error_was_quota:
+            self.exhausted_models.clear()
             return "RETRY_WAIT_55", None, "System Recovery", current_history
 
-        return "Syntriage is experiencing temporary latency. Please refresh and try again.", None, "System Recovery", current_history
+        return "Syntriage is experiencing temporary latency. Please refresh.", None, "System Recovery", current_history
 
 coordinator = CoordinatorAgent()
