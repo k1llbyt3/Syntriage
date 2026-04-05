@@ -1,111 +1,102 @@
-# 🏥 Syntriage: Smart Patient Intake & Care Coordinator
+# 🏥 Syntriage: Next-Gen Clinical Orchestration ⚡
 
-[![Live Demo](https://img.shields.io/badge/demo-syntriage.vercel.app-blueviolet?style=for-the-badge&logo=vercel)](https://syntriage.vercel.app)
+<div align="center">
+
+![Syntriage Banner](https://img.shields.io/badge/SYNTRIAGE-SMART%20HEALTHCARE-blueviolet?style=for-the-badge&logo=at-and-t)
+
+[![Cloud Run](https://img.shields.io/badge/Deployed%20on-Google%20Cloud%20Run-blue?style=for-the-badge&logo=google-cloud)](https://syntriage-frontend-267460236055.europe-west1.run.app)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://syntriage.vercel.app)
 [![Tech Stack](https://img.shields.io/badge/stack-FastAPI%20%7C%20Next.js%20%7C%20Gemini-blue?style=for-the-badge)](https://github.com/k1llbyt3/Syntriage)
 
-**Syntriage** is a next-generation clinical orchestration platform designed to streamline patient intake through AI-driven triage, history reconciliation, and smart scheduling. By leveraging a multi-agent architecture and the Model Context Protocol (MCP), Syntriage ensures high-fidelity clinical data collection while prioritizing patient safety.
+**Syntriage** is a high-fidelity clinical orchestration platform. It streamlines patient intake through AI-driven triage, multi-agent history reconciliation, and smart scheduling.
+
+[**🌐 Live Demo (Cloud Run)**](https://syntriage-frontend-267460236055.europe-west1.run.app) • [**⚡ Vercel Mirror**](https://syntriage.vercel.app) • [**📂 Repository**](https://github.com/k1llbyt3/Syntriage)
+
+</div>
 
 ---
 
-## ✨ Key Features
+## 🚀 The Vision
 
-- **🧠 Multi-Agent Orchestration:** Specialized AI agents (Triage, History, Scheduling, Insurance) collaborate to process patient requests.
-- **⚡ Real-time Triage:** WebSocket-based streaming for instant symptom evaluation and clinical status updates.
-- **🚨 Emergency Bypass:** Automated detection of high-risk symptoms (e.g., chest pain) with immediate escalation to emergency protocols.
-- **⚖️ Clinical Consensus:** Integrated "Debate Logic" where agents reconcile conflicting data (e.g., Triage vs. Medical History) to ensure accuracy.
-- **📅 Smart Scheduling:** Automated appointment booking and insurance verification via dedicated MCP tools.
-- **🛠️ Provider Dashboard:** Comprehensive view of patient records, clinical notes, and urgency-based case management.
+Traditional patient intake is slow and prone to error. **Syntriage** leverages a **Multi-Agent Architecture** powered by the **Model Context Protocol (MCP)** to ensure that every patient interaction is medically sound, safe, and efficient.
 
----
+### 💎 Key Innovations
 
-## 🛠️ Tech Stack
-
-### Backend
-- **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
-- **AI/LLM:** [Google Gemini AI](https://ai.google.dev/) via `google-generativeai`
-- **Database:** [SQLModel](https://sqlmodel.tiangolo.com/) & PostgreSQL
-- **Real-time:** WebSockets for asynchronous agent-patient interaction
-- **Protocol:** [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) for tool-augmented intelligence
-
-### Frontend
-- **Framework:** [Next.js 15+](https://nextjs.org/) (React 19)
-- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/)
-- **Animations:** [Framer Motion](https://www.framer.com/motion/)
-- **Icons:** [Lucide React](https://lucide.dev/)
+| Feature | Description |
+| :--- | :--- |
+| **🧠 Agentic Mesh** | Specialized agents (Triage, History, Scheduling, Insurance) collaborate in real-time. |
+| **⚡ Streaming Triage** | WebSocket-driven symptom evaluation with sub-second response times. |
+| **🚨 Emergency Protocol** | Hard-coded bypass for high-risk symptoms (e.g., cardiac or stroke indicators). |
+| **⚖️ Clinical Consensus** | "Debate Logic" between agents to reconcile conflicting medical histories. |
+| **📅 MCP Scheduling** | Direct integration with clinical tools for verified appointment booking. |
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Tech Stack & Architecture
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL Database
-- Gemini API Key
+### **The Core (Backend)**
+- **Runtime:** [Python 3.12+](https://python.org)
+- **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (High-performance async)
+- **Intelligence:** [Google Gemini AI](https://ai.google.dev/) via `google-generativeai`
+- **Protocol:** [MCP (Model Context Protocol)](https://modelcontextprotocol.io/)
+- **Storage:** [SQLModel](https://sqlmodel.tiangolo.com/) + PostgreSQL
 
-### Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Configure environment variables in a `.env` file:
-   ```env
-   DATABASE_URL=postgresql://user:password@localhost/dbname
-   GEMINI_API_KEY=your_api_key_here
-   FRONTEND_URL=https://syntriage.vercel.app
-   ```
-4. Start the server:
-   ```bash
-   python main.py
-   ```
-
-### Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+### **The Experience (Frontend)**
+- **Framework:** [Next.js 15+](https://nextjs.org/) (App Router & React 19)
+- **Style:** [Tailwind CSS 4](https://tailwindcss.com/)
+- **Motion:** [Framer Motion](https://www.framer.com/motion/)
+- **Interface:** [Lucide React](https://lucide.dev/) Icons
 
 ---
 
-## 📂 Project Structure
+## 📂 Project Anatomy
 
-```text
+```bash
 .
-├── backend/
-│   ├── agents/          # AI Agent logic and clinical prompts
-│   ├── core/            # Database and app configuration
-│   ├── mcp_servers/     # Tool-based servers (History, Insurance, etc.)
-│   ├── models/          # SQLModel database schemas
-│   └── main.py          # FastAPI entry point & WebSocket handler
-├── frontend/
+├── 🐍 backend/
+│   ├── agents/          # AI Orchestration & Clinical Prompts
+│   ├── mcp_servers/     # Tool-based Intelligence (History, Insurance)
+│   ├── core/            # Database & App Config
+│   └── main.py          # WebSocket Entry Point
+├── ⚛️ frontend/
 │   ├── src/app/         # Next.js App Router (Dashboard & Chat)
-│   ├── src/components/  # UI Components (ChatBubble, StatusPill)
-│   └── src/hooks/       # Custom React hooks (useChat)
-└── render.yaml          # Deployment configuration
+│   ├── src/components/  # UI Components (StatusPill, TimeSlot)
+│   └── src/hooks/       # Business Logic (useChat)
+└── ☁️ render.yaml        # Infrastructure as Code
+```
+
+---
+
+## 🚦 Quick Start
+
+### 1. Clone & Prep
+```bash
+git clone https://github.com/k1llbyt3/Syntriage.git
+cd Syntriage
+```
+
+### 2. Launch Backend
+```bash
+cd backend
+pip install -r requirements.txt
+# Set GEMINI_API_KEY & DATABASE_URL in .env
+python main.py
+```
+
+### 3. Launch Frontend
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
 
 ## 🛡️ Safety & Compliance
-Syntriage implements a **Safety-First** approach. The system is designed to detect life-threatening symptoms and immediately redirect users to emergency services. Clinical notes are logged with urgency levels and can be manually overridden by healthcare professionals.
+Syntriage is built with a **Safety-First** philosophy. We implement strict heuristic checks for life-threatening conditions, ensuring that AI-driven triage never replaces immediate emergency care when seconds count.
 
 ---
 
-## 🔗 Links
-- **Live Website:** [syntriage.vercel.app](https://syntriage.vercel.app)
-- **GitHub Repository:** [github.com/k1llbyt3/Syntriage](https://github.com/k1llbyt3/Syntriage)
-
----
-*Developed for smart healthcare orchestration.*
+<div align="center">
+  <sub>Developed with ❤️ for the future of healthcare.</sub>
+</div>
