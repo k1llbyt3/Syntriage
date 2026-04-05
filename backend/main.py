@@ -33,15 +33,31 @@ def on_startup():
 
     with Session(engine) as session:
         try:
+            # Postgres supports ADD COLUMN IF NOT EXISTS
             session.execute(text("ALTER TABLE clinicalnote ADD COLUMN IF NOT EXISTS is_debated BOOLEAN DEFAULT FALSE"))
             session.execute(text("ALTER TABLE clinicalnote ADD COLUMN IF NOT EXISTS debate_transcript TEXT"))
             session.execute(text("ALTER TABLE clinicalnote ADD COLUMN IF NOT EXISTS override_by VARCHAR"))
             session.execute(text("ALTER TABLE clinicalnote ADD COLUMN IF NOT EXISTS override_at TIMESTAMP"))
+            session.execute(text("ALTER TABLE clinicalnote ADD COLUMN IF NOT EXISTS patient_id INTEGER REFERENCES patient(id)"))
             session.commit()
             print("DEBUG: Clinical schema synchronized successfully.")
         except Exception as e:
-            print(f"DEBUG: Schema sync warning: {e}")
+            # Fallback for SQLite or older Postgres where IF NOT EXISTS might not be supported
+            print(f"DEBUG: Schema sync warning (attempting granular updates): {e}")
             session.rollback()
+            for col in [
+                ("is_debated", "BOOLEAN DEFAULT FALSE"),
+                ("debate_transcript", "TEXT"),
+                ("override_by", "VARCHAR"),
+                ("override_at", "TIMESTAMP"),
+                ("patient_id", "INTEGER REFERENCES patient(id)")
+            ]:
+                try:
+                    session.execute(text(f"ALTER TABLE clinicalnote ADD COLUMN {col[0]} {col[1]}"))
+                    session.commit()
+                except Exception as inner_e:
+                    # Column likely exists
+                    session.rollback()
 
 @app.get("/")
 def read_root():
@@ -96,18 +112,55 @@ def get_patient_detail(patient_id: int, db: Session = Depends(get_db)):
     patient = db.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Fetch medical history
+    statement_history = select(MedicalHistory).where(MedicalHistory.patient_id == patient_id)
+    history = db.exec(statement_history).first()
+    
     statement_apt = select(Appointment).where(Appointment.patient_id == patient_id)
     appointments = db.exec(statement_apt).all()
     result_appointments = []
     for a in appointments:
         statement_note = select(ClinicalNote).where(ClinicalNote.appointment_id == a.id)
         note = db.exec(statement_note).first()
+        
         result_appointments.append({
             "id": a.id, "time": a.appointment_time, "status": a.status,
             "note": note.note_content if note else None,
             "urgency": note.urgency_level if note else None
         })
-    return {"id": patient.id, "first_name": patient.first_name, "last_name": patient.last_name, "email": patient.email, "appointments": result_appointments}
+    
+    # Fetch notes linked only to patient_id (not tied to specific appointment)
+    statement_orphan_notes = select(ClinicalNote).where(
+        ClinicalNote.patient_id == patient_id,
+        ClinicalNote.appointment_id == None
+    )
+    orphan_notes = db.exec(statement_orphan_notes).all()
+    for on in orphan_notes:
+        result_appointments.append({
+            "id": f"note-{on.id}",
+            "time": on.override_at or datetime.now(), # Use override time or now as fallback
+            "status": "General Note",
+            "note": on.note_content,
+            "urgency": on.urgency_level
+        })
+    
+    # Sort appointments by time descending
+    result_appointments.sort(key=lambda x: x["time"] if isinstance(x["time"], datetime) else datetime.fromisoformat(str(x["time"])), reverse=True)
+
+    return {
+        "id": patient.id, 
+        "first_name": patient.first_name, 
+        "last_name": patient.last_name, 
+        "email": patient.email, 
+        "created_at": patient.created_at,
+        "appointments": result_appointments,
+        "history": {
+            "allergies": history.allergies if history else None,
+            "medications": history.medications if history else None,
+            "past_surgeries": history.past_surgeries if history else None
+        } if history else None
+    }
 
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):

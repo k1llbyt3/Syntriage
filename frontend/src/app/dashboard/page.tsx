@@ -48,6 +48,11 @@ interface PatientDetail {
   email: string;
   created_at: string;
   appointments: Appointment[];
+  history?: {
+    allergies?: string | null;
+    medications?: string | null;
+    past_surgeries?: string | null;
+  } | null;
 }
 
 export default function Dashboard() {
@@ -484,6 +489,31 @@ export default function Dashboard() {
                   </div>
                 </section>
 
+                {/* Medical History Section */}
+                <section>
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20 mb-4 block">Medical Background</label>
+                  <div className="glass-card p-6 space-y-6">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 block mb-2">Known Allergies</span>
+                      <p className="text-xs text-white/80 font-medium">
+                        {patientDetail.history?.allergies || "No allergies documented."}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 block mb-2">Current Medications</span>
+                      <p className="text-xs text-white/80 font-medium">
+                        {patientDetail.history?.medications || "No active medications."}
+                      </p>
+                    </div>
+                    {patientDetail.history?.past_surgeries && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 block mb-2">Past Surgeries</span>
+                        <p className="text-xs text-white/80 font-medium">{patientDetail.history.past_surgeries}</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
                 {/* Encounter Timeline */}
                 <section>
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20 mb-4 block">Encounter Timeline</label>
@@ -491,7 +521,7 @@ export default function Dashboard() {
                     {patientDetail.appointments.length === 0 ? (
                       <p className="text-xs text-white/20 italic p-6 border border-dashed border-white/5 rounded-2xl text-center">No digital encounters registered yet.</p>
                     ) : patientDetail.appointments.map((apt: Appointment) => (
-                      <div key={apt.id} className="glass-card p-6 border-l-4 border-primary-teal">
+                      <div key={apt.id} className={`glass-card p-6 border-l-4 ${apt.status === 'General Note' ? 'border-primary-teal-light/40' : 'border-primary-teal'}`}>
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
                             <Clock className="w-3 h-3 text-primary-teal-light" />

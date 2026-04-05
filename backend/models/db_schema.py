@@ -34,6 +34,7 @@ class Appointment(SQLModel, table=True):
 class ClinicalNote(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     appointment_id: Optional[int] = Field(default=None, foreign_key="appointment.id")
+    patient_id: Optional[int] = Field(default=None, foreign_key="patient.id")
     note_content: str
     urgency_level: str = "Low" 
     is_debated: bool = Field(default=False)
