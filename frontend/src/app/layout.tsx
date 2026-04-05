@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // Use BACKEND_URL at runtime (Cloud Run will provide this)
-  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.BACKEND_URL || "";
   
   return (
     <html
@@ -46,7 +46,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               window.BACKEND_URL = "${backendUrl}";
-              console.log("Syntriage Runtime Config: Backend URL is set to " + window.BACKEND_URL);
+              if (!window.BACKEND_URL) {
+                console.error("SYNTRIAGE ERROR: BACKEND_URL environment variable is MISSING in Cloud Run!");
+              } else {
+                console.log("SYNTRIAGE SUCCESS: Connecting to backend at " + window.BACKEND_URL);
+              }
             `,
           }}
         />

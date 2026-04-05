@@ -28,27 +28,27 @@ export const useChat = () => {
     let timeoutId: NodeJS.Timeout;
     
     const connect = () => {
-      // Connect to WebSocket using the injected BACKEND_URL or fallback
-      let wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-      
-      if (!wsUrl && typeof window !== "undefined") {
-        // @ts-ignore - BACKEND_URL is injected in layout.tsx
-        let runtimeUrl = window.BACKEND_URL;
-        if (runtimeUrl) {
-          // Remove trailing slash if present
-          runtimeUrl = runtimeUrl.replace(/\/$/, "");
-          // Convert http(s) to ws(s)
-          wsUrl = runtimeUrl.replace(/^http/, "ws") + "/ws/chat";
-        } else {
-          // Final fallback
-          const host = window.location.host;
-          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-          wsUrl = `${protocol}//${host}/ws/chat`;
-        }
+      // Prioritize the injected runtime URL over anything baked in at build time
+      // @ts-ignore
+      let runtimeUrl = (typeof window !== "undefined") ? window.BACKEND_URL : null;
+      let wsUrl = "";
+
+      if (runtimeUrl) {
+        // Use the live runtime URL from Cloud Run Console
+        runtimeUrl = runtimeUrl.replace(/\/$/, ""); // Strip trailing slash
+        wsUrl = runtimeUrl.replace(/^http/, "ws") + "/ws/chat";
+      } else if (process.env.NEXT_PUBLIC_WS_URL) {
+        // Fallback to build-time variable
+        wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+      } else if (typeof window !== "undefined") {
+        // Final fallback to current domain
+        const host = window.location.host;
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        wsUrl = `${protocol}//${host}/ws/chat`;
       }
       
-      console.log("Syntriage WebSocket: Connecting to " + wsUrl);
-      const socket = new WebSocket(wsUrl || "");
+      console.log("Syntriage WebSocket: Attempting connection to " + wsUrl);
+      const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
