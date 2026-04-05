@@ -12,7 +12,7 @@ from mcp_servers.history_tools import (
     add_medication,
     fetch_medical_history,
 )
-from mcp_servers.notes_tools import save_patient_note, save_clinical_note
+from mcp_servers.notes_tools import save_patient_note, save_clinical_note, get_patient_records
 from mcp_servers.insurance_tools import (
     verify_coverage, 
     verify_billing_status,
@@ -20,6 +20,7 @@ from mcp_servers.insurance_tools import (
 )
 from mcp_servers.profile_tools import get_patient_profile, register_patient
 import json
+import asyncio
 from datetime import datetime
 
 
@@ -56,6 +57,7 @@ tools = [
     fetch_medical_history,
     save_patient_note,
     save_clinical_note,
+    get_patient_records,
     verify_coverage,
     verify_billing_status,
     register_insurance_profile,
@@ -69,115 +71,120 @@ tools = [
 
 class CoordinatorAgent:
     def __init__(self):
-        print(f"DEBUG: Initializing Syntriage Tiered Clinical Orchestrator (v2.5)...")
+        print(f"DEBUG: Initializing Syntriage Stateless Orchestrator (v2.7)...")
         genai.configure(api_key=settings.GOOGLE_API_KEY)
         
-        # Tiered Model Pool (Verified 2026 Stable IDs)
+        # Enhanced Model Pool for failover backups
         self.model_pool = [
-            "gemini-3.1-pro-preview", # Tier 1: Primary Coordinator
-            "gemini-2.5-flash",       # Tier 2: Triage Reasoning
-            "gemini-2.5-flash-lite"   # Tier 3: Registry Server
+            "gemini-2.5-flash-lite",  # Tier 1: Optimized/Cheapest
+            "gemini-2.5-flash",       # Tier 2: Reasoning backup
+            "gemini-3.1-pro-preview"  # Tier 3: Expert backup
         ]
         self.active_model_index = 0
-        self.chat_sessions = {}  # Store chat sessions per model if needed
-
-    def _get_active_session(self, model_name: str):
-        if model_name not in self.chat_sessions:
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=COORDINATOR_SYSTEM_PROMPT.format(current_time=datetime.now().strftime("%A, %B %d, %Y %I:%M %p")),
-                tools=tools,
-            )
-            self.chat_sessions[model_name] = model.start_chat(
-                history=[], enable_automatic_function_calling=True
-            )
-        return self.chat_sessions[model_name]
 
     def _to_dict(self, obj):
-        # Robust conversion for MapComposite/RepeatedComposite
         if hasattr(obj, "items"):
             return {k: self._to_dict(v) for k, v in obj.items()}
         elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes)):
             return [self._to_dict(v) for v in obj]
         return obj
 
-    async def get_response_with_widgets(self, user_input: str):
+    def prune_history(self, history, max_turns=10):
+        """Optimizes API consumption by keeping only the last N turns of context."""
+        if len(history) > max_turns * 2: # 2 parts per turn usually
+            return history[-(max_turns * 2):]
+        return history
+
+    async def get_response_with_widgets(self, user_input: str, history=None):
         """
-        Parallel Model Failover: Attempts to process through the model pool
-        if a quota (429) or discovery (404) error occurs.
+        Processes a request without persistent session storage.
+        Handles 429 errors with a 55s wait (buffer) and console-only logging.
         """
-        # Clinical Identity Branding (Professional naming only)
         ROLE_NAMES = {
-            "gemini-3.1-pro-preview": "Smart Coordinator",
-            "gemini-2.5-flash": "Clinical Triage Specialist",
-            "gemini-2.5-flash-lite": "Patient Registry Specialist"
+            "gemini-3.1-pro-preview": "Expert Coordinator",
+            "gemini-2.5-flash": "Clinical Specialist",
+            "gemini-2.5-flash-lite": "Care Assistant"
         }
         
-        last_error = None
+        # Optimization: Prune history to reduce token consumption
+        current_history = self.prune_history(history or [])
         
-        # Try up to 3 models in the pool
+        # Failover Loop (Backups for all agents)
         for _ in range(len(self.model_pool)):
             model_name = self.model_pool[self.active_model_index]
             role_name = ROLE_NAMES.get(model_name, "Clinical AI")
-            print(f"DEBUG: Attempting turn with {model_name}...")
             
             try:
-                chat = self._get_active_session(model_name)
+                model = genai.GenerativeModel(
+                    model_name=model_name,
+                    system_instruction=COORDINATOR_SYSTEM_PROMPT.format(current_time=datetime.now().strftime("%A, %B %d, %Y %I:%M %p")),
+                    tools=tools,
+                )
+                chat = model.start_chat(history=current_history, enable_automatic_function_calling=True)
                 
-                # Rule 1: Inject Live Time Context (Solves "Tomorrow" logic)
                 time_context = f"[System Context: Today is {datetime.now().strftime('%A, %B %d, %Y')}]\n"
                 enriched_input = time_context + user_input
                 
-                # Rule 2: Parallel Tools + No SDK Retries (we handle retries via failover)
                 response = chat.send_message(enriched_input, request_options={"retry": None})
 
-                # ROBUST RESPONSE HANDLING
                 responseText = ""
-                try:
-                    if response.candidates and response.candidates[0].content.parts:
-                        for part in response.candidates[0].content.parts:
-                            if hasattr(part, "text"):
-                                responseText += part.text
-                    
-                    if not responseText:
-                        # Check if it was blocked
-                        finish_reason = response.candidates[0].finish_reason if response.candidates else "Unknown"
-                        if finish_reason != 1: # 1 is SUCCESS in many versions, but check safety
-                             responseText = f"[Response Filtered: Protocol Safety Triggered (Reason: {finish_reason})]"
-                        else:
-                             responseText = "Clinical request processed. How can I assist further?"
-                except Exception as parse_error:
-                    print(f"DEBUG: Response parsing error: {parse_error}")
-                    responseText = "Request acknowledged. Syntriage is coordinating the next steps."
+                if response.candidates and response.candidates[0].content.parts:
+                    for part in response.candidates[0].content.parts:
+                        if hasattr(part, "text"):
+                            responseText += part.text
+                
+                if not responseText:
+                    responseText = "Clinical request processed. How can I assist further?"
 
                 widget_data = None
-                history = chat.history
-                if history:
-                    for msg in history[-5:]:
-                        for part in msg.parts:
-                            if hasattr(part, "function_response"):
-                                name = part.function_response.name
-                                # Convert specialized protocol objects to pure dicts/lists
-                                resp = self._to_dict(part.function_response.response)
+                # Dynamic Role Detection based on Tool Usage
+                for msg in reversed(chat.history[-5:]):
+                    for part in msg.parts:
+                        if hasattr(part, "function_call"):
+                            call_name = part.function_call.name
+                            if call_name in ["get_patient_records", "fetch_medical_history", "save_clinical_note", "save_patient_note", "update_allergies", "add_medication"]:
+                                role_name = "Clinical Records Specialist"
+                            elif call_name in ["evaluate_urgency", "check_medical_protocol"]:
+                                role_name = "Triage Specialist"
+                            elif call_name in ["get_available_slots", "book_slot"]:
+                                role_name = "Scheduling Coordinator"
+                            elif call_name in ["verify_billing_status", "verify_coverage", "register_insurance_profile"]:
+                                role_name = "Insurance Specialist"
+                            elif call_name in ["get_patient_profile", "register_patient"]:
+                                role_name = "Patient Registry"
+                            elif call_name == "trigger_consensus_debate":
+                                role_name = "Clinical Consensus Hub"
+                            elif call_name == "transfer_to_agent":
+                                # Handle explicit transfer call
+                                args = self._to_dict(part.function_call.args)
+                                if "agent_name" in args:
+                                    role_name = f"{args['agent_name'].capitalize()} Specialist"
 
-                                if name == "get_available_slots":
-                                    widget_data = {"type": "time_slots", "data": resp}
-                                elif name == "update_status":
-                                    widget_data = {"type": "status_update", "content": resp}
-                                elif name == "trigger_consensus_debate":
-                                    widget_data = {"type": "debate_event", "data": resp}
+                        if hasattr(part, "function_response"):
+                            name = part.function_response.name
+                            resp = self._to_dict(part.function_response.response)
+                            if name == "get_available_slots":
+                                widget_data = {"type": "time_slots", "data": resp}
+                            elif name == "update_status":
+                                widget_data = {"type": "status_update", "content": resp}
+                            elif name == "trigger_consensus_debate":
+                                widget_data = {"type": "debate_event", "data": resp}
 
-                return responseText, widget_data, role_name
+                return responseText, widget_data, role_name, chat.history
                 
             except Exception as e:
-                last_error = str(e)
-                print(f"DEBUG: {model_name} Error: {last_error}")
-                # Rotate to next model in pool on 429 (Quota) or 404 (Not Found)
+                error_str = str(e)
+                print(f"CRITICAL: {model_name} failed: {error_str}")
+                
+                if "429" in error_str:
+                    print("QUOTA EXCEEDED (429): Waiting 55 seconds (buffer active)...")
+                    return "RETRY_WAIT_55", None, role_name, current_history
+                
+                # Failover to next model in pool
                 self.active_model_index = (self.active_model_index + 1) % len(self.model_pool)
                 continue
 
-        # If all models in the pool fail
-        return f"SYSTEM_LOG: PARALLELA_POOL_EXHAUSTED: {last_error}", None, "System Recovery"
+        return "Syntriage is currently under extreme load. Please check back in a few minutes.", None, "System Recovery", current_history
 
 
 coordinator = CoordinatorAgent()

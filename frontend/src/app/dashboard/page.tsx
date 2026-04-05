@@ -74,28 +74,42 @@ export default function Dashboard() {
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
-      try {
-        const [patientsRes, casesRes] = await Promise.all([
-          fetch(`${API_BASE}/patients`),
-          fetch(`${API_BASE}/debated-cases`)
-        ]);
+      
+      const MAX_RETRIES = 6; // ~60 seconds total with 10s delay
+      const RETRY_DELAY = 10000; // 10 seconds
+      
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const [patientsRes, casesRes] = await Promise.all([
+            fetch(`${API_BASE}/patients`),
+            fetch(`${API_BASE}/debated-cases`)
+          ]);
 
-        if (!patientsRes.ok || !casesRes.ok) {
-          throw new Error("Failed to fetch initial dashboard data");
+          if (!patientsRes.ok || !casesRes.ok) {
+            throw new Error("Clinical server returned an error status.");
+          }
+
+          const [patientsData, casesData] = await Promise.all([
+            patientsRes.json(),
+            casesRes.json()
+          ]);
+
+          setPatients(Array.isArray(patientsData) ? patientsData : []);
+          setDebatedCases(Array.isArray(casesData) ? casesData : []);
+          setError(null);
+          setIsLoading(false);
+          return; // Success! Exit the loop and function
+        } catch (err) {
+          console.warn(`Attempt ${attempt} failed:`, err);
+          if (attempt === MAX_RETRIES) {
+            console.error("Dashboard Load Error after all retries:", err);
+            setError("The clinical server is taking too long to respond. Please ensure the backend is active and try refreshing.");
+            setIsLoading(false);
+          } else {
+            // Wait before next attempt
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          }
         }
-
-        const [patientsData, casesData] = await Promise.all([
-          patientsRes.json(),
-          casesRes.json()
-        ]);
-
-        setPatients(Array.isArray(patientsData) ? patientsData : []);
-        setDebatedCases(Array.isArray(casesData) ? casesData : []);
-      } catch (err) {
-        console.error("Dashboard Load Error:", err);
-        setError("Unable to connect to the clinical server. Please ensure the backend is running.");
-      } finally {
-        setIsLoading(false);
       }
     };
 
